@@ -141,6 +141,18 @@
   h2 { font-size: 19px; line-height: 1.25; margin: 0; font-weight: 650; letter-spacing: -0.01em; text-wrap: balance; }
   .banner { display: flex; gap: 10px; align-items: flex-start; background: var(--note-bg); color: var(--note-ink); border-radius: 16px; padding: 12px 16px; font-size: 15px; }
   .note { display: flex; gap: 9px; align-items: flex-start; background: var(--note-bg); color: var(--note-ink); border-radius: 12px; padding: 10px 12px; font-size: 14px; }
+  /* the price now and room for a wash or a dry (2026-11-13) */
+  .room { display: grid; gap: 10px; border-top: 1px solid var(--line); padding-top: 12px; }
+  .room p { margin: 0; }
+  .room-price { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; font-size: 16px; }
+  .room-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+  .room-list li { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 10px; row-gap: 2px; align-items: baseline; }
+  .room-flag { grid-row: span 2; align-self: start; font-size: 13px; font-weight: 600; border-radius: 7px; padding: 2px 9px;
+               border: 1px solid transparent; white-space: nowrap; }
+  .room-flag.yes { color: var(--good-text); background: var(--good-wash); border-color: var(--good-line); }
+  .room-flag.wait { color: var(--note-ink); background: var(--note-bg); }
+  .room-flag.no { color: var(--critical); border-color: currentColor; }
+  .room-name { font-weight: 600; font-size: 15px; }
   .note .i, .banner .i { width: 18px; height: 18px; margin-top: 1px; }
   .stack { display: grid; gap: 14px; }
 
@@ -695,6 +707,107 @@ function sceneLabel(x, y, right, label, valueHtml) {
     <div class="k">${esc(label)}</div><div class="v">${valueHtml}</div></div>`;
 }
 
+// ---- the price now, and room for a wash or a dry (2026-11-13). Outside the cheap windows the inverter gives
+// at most 5 kW (solar and battery together): above that, and once the battery is down to its floor, power is bought
+// at the dear rate. So a machine can run outside a window if it keeps the house under 5 kW and the battery still lasts
+// until the next window. The figures come from app-data.json's "room" (the daily job: energy_tracker/app.py).
+const SHOWER_KW = 7;                 // the house above this means the shower's on: nothing else big now (the main fuse)
+const ROOM_MARGIN_KW = 0.3;          // keep a little under the 5 kW: the house's own use moves about
+const NEED_MARGIN = 1.15;            // the battery should have a little more than the house usually needs before then
+function londonNow(d = new Date()) {
+  const p = Object.fromEntries(PARTS_FMT.formatToParts(d).map(x => [x.type, x.value]));
+  return { minute: (+p.hour % 24) * 60 + +p.minute, weekday: weekdayOf(`${p.year}-${p.month}-${p.day}`) };
+}
+function tariffNow(prices, d = new Date()) {
+  // the price now, when it next changes, and when the cheapest everyday price next starts (minute by minute, 2 days on)
+  if (!prices || !(prices.import_bands || []).length) return null;
+  const { minute, weekday } = londonNow(d);
+  const now = priceFor(prices, weekday, minute);
+  if (now == null) return null;
+  const cheap = Math.min(...prices.import_bands.map(b => b[2]));
+  let change = null, next = null, cheapEnd = null;            // cheapEnd: when a cheap or free spell is over
+  for (let k = 1; k <= 2 * 1440; k++) {
+    const m = minute + k, p = priceFor(prices, (weekday + Math.floor(m / 1440)) % 7, m % 1440);
+    if (change == null && p !== now) change = { in: k, p };
+    if (next == null && now > cheap && p <= cheap) next = { in: k, p };
+    if (cheapEnd == null && now <= cheap && p > cheap) cheapEnd = k;
+    if (change && (now > cheap ? next : cheapEnd)) break;
+  }
+  return { p: now, cheap: now <= cheap, change, next, cheapEnd };
+}
+function duration(minutes) {
+  const h = Math.floor(minutes / 60), m = minutes % 60;
+  return h ? `${h} h${m ? ` ${m} min` : ""}` : `${m} min`;
+}
+function needUntil(need, d, minutes) {
+  // the house's typical use less solar from now for `minutes`, half hour by half hour (the current one in part)
+  const start = londonNow(d).minute;
+  let total = 0;
+  for (let m = start; m < start + minutes;) {
+    const step = Math.min((Math.floor(m / 30) + 1) * 30, start + minutes) - m;
+    total += (need[Math.floor((m % 1440) / 30)] || 0) * step / 30;
+    m += step;
+  }
+  return Math.max(0, total);
+}
+function roomAnswer(m, f, room, t, d) {
+  const at = k => clock(new Date(d.getTime() + k * 60000));
+  if (f.house >= SHOWER_KW) return { kind: "wait", flag: "After the shower", why: "Nothing else big while the shower's on: it's a lot for the main fuse at once." };
+  if (t.cheap) {
+    const runsOver = t.cheapEnd != null && m.minutes > t.cheapEnd;
+    const charging = m.key === "both" && f.charge >= 2 ? " The battery's charging too, so nothing else big at the same time." : "";
+    return { kind: "yes", flag: "Yes", why: `${cheapWords(t, at)}.` +
+             (runsOver ? ` It would finish about ${at(m.minutes)}, so the end runs on the battery.` : "") + charging };
+  }
+  const later = t.next ? `at ${at(t.next.in)}` : "in the next cheap window";
+  if (f.solar - f.house >= m.kw) return { kind: "yes", flag: "Yes", why: "Spare solar covers it right now." };
+  if (f.house + m.kw > room.inverter_kw - ROOM_MARGIN_KW) {
+    return { kind: "no", flag: "Not now", why: `It would take the house over ${kw(room.inverter_kw)} kW, and the rest would be bought at ${pence(t.p)}. Better ${later}.` };
+  }
+  if (f.pct == null || !room.need_kwh || !t.next) return { kind: "wait", flag: "Better later", why: `The battery's level isn't known, so ${later} is the safe time.` };
+  const have = Math.max(0, (f.pct - room.floor_percent) / (100 - room.floor_percent)) * room.usable_kwh;
+  const need = needUntil(room.need_kwh, d, t.next.in);
+  if (have < need) {
+    return { kind: "wait", flag: `Wait till ${at(t.next.in)}`,
+             why: `The battery has about ${kwh(have)} kWh, and the house usually needs about ${kwh(need)} before ${at(t.next.in)}, ` +
+                  `so it will run out anyway: anything extra now is bought at ${pence(t.p)}.` };
+  }
+  if (have >= need * NEED_MARGIN + m.kwh) {
+    return { kind: "yes", flag: "Yes", why: `The battery has about ${kwh(have)} kWh: enough for this and the house until ${at(t.next.in)}.` };
+  }
+  return { kind: "wait", flag: `Wait till ${at(t.next.in)}`,
+           why: `The battery has about ${kwh(have)} kWh, and the house usually needs about ${kwh(need)} before ${at(t.next.in)}. ` +
+                `This would run it flat, and the rest would be bought at ${pence(t.p)}.` };
+}
+function cheapWords(t, at) {
+  // "15p a unit until 22:30", or on free Sundays "Free until 14:00, then 15p until 15:00"
+  const head = t.p === 0 ? "Free" : `${pence(t.p)} a unit`;
+  if (!t.change) return head;
+  const then = t.change.p > t.p && t.cheapEnd != null && t.cheapEnd > t.change.in ? `, then ${pence(t.change.p)} until ${at(t.cheapEnd)}` : "";
+  return `${head} until ${at(t.change.in)}${then}`;
+}
+function roomPanel(f, late) {
+  const room = daily && daily.room, t = daily && tariffNow(daily.prices);
+  if (!t) return "";
+  const d = new Date(), at = k => clock(new Date(d.getTime() + k * 60000));
+  const price = t.cheap ? `<b>${esc(cheapWords(t, at))}</b>`
+    : `<b>${pence(t.p)} a unit now</b>${t.next ? `<span class="fine">${pence(t.next.p)} from ${at(t.next.in)}, in ${duration(t.next.in)}</span>` : ""}`;
+  if (!room || late) return `<div class="room"><p class="room-price">${price}</p></div>`;
+  const spare = room.inverter_kw - f.house;
+  const using = t.cheap ? `The house is using ${kw(f.house)} kW, all on ${t.p === 0 ? "free" : pence(t.p)} power from the grid.`
+    : `The house is using ${kw(f.house)} kW: ${spare >= 0.05 ? `${kw(spare)} kW to spare` : "nothing to spare"} before power is bought at ${pence(t.p)}.`;
+  const rows = room.machines.map(m => {
+    const a = roomAnswer(m, f, room, t, d);
+    return `<li><span class="room-flag ${a.kind}">${esc(a.flag)}</span><span class="room-name">${esc(m.name)}</span><span class="fine">${esc(a.why)}</span></li>`;
+  }).join("");
+  return `<div class="room">
+      <p class="room-price">${price}</p>
+      <p class="fine">${esc(using)}</p>
+      <ul class="room-list" aria-label="Room for the machines now">${rows}</ul>
+      <p class="fine">About 2.1 kW and 2.1 kWh for a hot wash, 2.4 kW and 3 kWh for a dry, from the house's readings. Not overnight or while everyone's out.</p>
+    </div>`;
+}
+
 function nowCard() {
   const r = live.reading;
   if (!r) return live.url ? card("now", "Right now", `<p class="muted">${esc(live.error || "Getting the latest reading…")}</p>`) : "";
@@ -716,6 +829,7 @@ function nowCard() {
       <div class="stack now-words">
         <p class="story">${esc(story(r))}</p>
         ${late ? `<div class="note">${icon("alert")}<span>FoxESS's last reading was at ${esc(time)}. The inverter or its internet connection may be off.</span></div>` : ""}
+        ${roomPanel(f, late)}
         <p class="fine">FoxESS's reading at ${esc(time)}. New readings come about every 5 minutes.${live.error ? ` ${esc(live.error)} Showing the last reading.` : ""}</p>
       </div>`, tools);
 }
@@ -734,6 +848,14 @@ function priceAt(bands, minute) {
     if (start > end && (minute >= start || minute < end)) return p;
   }
   return null;
+}
+function weekdayOf(date) { return (new Date(date + "T12:00:00Z").getUTCDay() + 6) % 7; }     // Monday 0, as the tracker counts
+function priceFor(prices, weekday, minute) {
+  // the import price at that time on that day: a day-only price first (Tide Lifestyle's free Sundays), else the bands
+  for (const [days, start, end, p] of prices.import_special || []) {
+    if (days.includes(weekday) && minute >= start && minute < end) return p;
+  }
+  return priceAt(prices.import_bands, minute);
 }
 function steps(d, fn) {
   // each 5-minute step of a day: its length in hours and its middle (seconds after midnight)
@@ -759,9 +881,10 @@ function dayMoney(d) {
   const prices = daily && daily.prices;
   if (!prices || !prices.import_bands || !d.points || !d.totals) return null;
   const sum = { buy: [0, 0], sell: [0, 0], use: [0, 0] };
+  const weekday = weekdayOf(d.date);
   steps(d, (i, h, mid) => {
     const minute = clockMinute(d.start + mid);
-    const pi = priceAt(prices.import_bands, minute), pe = priceAt(prices.export_bands, minute) || 0;
+    const pi = priceFor(prices, weekday, minute), pe = priceAt(prices.export_bands, minute) || 0;
     if (pi == null) return;
     for (const [k, col, p] of [["buy", "buying", pi], ["sell", "selling", pe], ["use", "house", pi]]) {
       const e = energy(d, col, i, h);
@@ -783,7 +906,10 @@ function priceWords() {
   const rates = [...new Set((p.import_bands || []).map(b => b[2]))].sort((a, b) => a - b);
   const exp = [...new Set((p.export_bands || []).map(b => b[2]))];
   const unit = rates.length === 1 ? `${pence(rates[0])} a unit` : `${pence(rates[0])} to ${pence(rates[rates.length - 1])} a unit`;
-  return `Money at today's prices (${esc(p.import)}: ${unit}, ${pence(p.standing_p_day)} a day; ${exp.every(v => !v) ? "exports aren't paid" : `exports earn ${exp.map(pence).join(" to ")}`}).`;
+  const names = ["Mondays", "Tuesdays", "Wednesdays", "Thursdays", "Fridays", "Saturdays", "Sundays"];
+  const hhmm = m => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+  const free = (p.import_special || []).filter(s => !s[3]).map(([days, start, end]) => `free on ${and(days.map(n => names[n]))} ${hhmm(start)}–${hhmm(end)}`);
+  return `Money at today's prices (${esc(p.import)}: ${unit}${free.length ? `, ${free.join(", ")}` : ""}, ${pence(p.standing_p_day)} a day; ${exp.every(v => !v) ? "exports aren't paid" : `exports earn ${exp.map(pence).join(" to ")}`}).`;
 }
 
 function hourRows(d) {
