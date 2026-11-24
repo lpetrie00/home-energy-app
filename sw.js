@@ -1,8 +1,8 @@
 // Home Energy: keeps the page working offline, and shows push notifications once they're set up.
-// Version 9 (2026-11-24): real size stays put when the browser is zoomed. The page is still fetched
+// Version 10 (2026-11-24): four full-screen pages, swiped sideways. The page is still fetched
 // fresh whenever there's internet. With no internet, or a very slow connection, the saved copy shows.
 // If caching or alerts fail, the page itself still loads.
-const SHELL = "home-energy-shell-v9";
+const SHELL = "home-energy-shell-v10";
 const DATA = "home-energy-data";
 const FILES = ["./", "index.html", "setup.html", "manifest.webmanifest", "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
 const PAGE_WAIT = 4000;     // milliseconds to wait for a fresh page before showing the saved one
