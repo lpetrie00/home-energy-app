@@ -398,7 +398,15 @@ const DATA_URL = DATA_PARAM || "app-data.json";
 // storage, separate from Safari's, so the key is pasted inside the app.
 // The public page has no figures, so there it always needs a key.
 const NEEDS_KEY = location.hostname.endsWith(".github.io") && !DATA_PARAM;
-const PLAYBOOK = "rrlouisp/life-playbook";     // a key that can see this is refused
+// A key that can also open this owner's playbook is refused. The owner is read from the
+// page's own address (name.github.io), so an account move doesn't leave an old name here.
+function pageOwner() {
+  return location.hostname.endsWith(".github.io") ? location.hostname.split(".")[0] : "";
+}
+function playbookRepo() {
+  const owner = pageOwner();
+  return owner ? `${owner}/life-playbook` : "";
+}
 const SOURCE_KEY = "private-source";
 const HIDDEN_KEY = "hidden-alerts";
 const CARDS_KEY = "hidden-cards";
@@ -2026,7 +2034,7 @@ class SetupError extends Error {
 function forgetSource() { try { localStorage.removeItem(SOURCE_KEY); } catch (e) {} }
 
 function defaultRepo() {
-  const owner = location.hostname.endsWith(".github.io") ? location.hostname.split(".")[0] : "";
+  const owner = pageOwner();
   return owner ? `${owner}/home-energy-data` : "";
 }
 
@@ -2073,14 +2081,17 @@ async function privateSource() {
   const headers = { Authorization: `Bearer ${source.key}`, "X-GitHub-Api-Version": "2022-11-28" };
   if (Date.now() - (source.checked || 0) > 24 * 3600 * 1000) {
     // refuse a key that can also open the playbook: it should only see the energy figures
-    const probe = await fetch(`https://api.github.com/repos/${PLAYBOOK}`, { headers, cache: "no-store" });
-    if (probe.ok) {
-      forgetSource();
-      throw new SetupError("That key can also see the owner's private playbook, so it was refused and forgotten. Make a key that can only see the energy figures.");
-    }
-    if (probe.status === 401) {
-      forgetSource();
-      throw new SetupError("GitHub didn't accept that key: it may be mistyped, expired or deleted. Paste a new one.");
+    const playbook = playbookRepo();
+    if (playbook) {
+      const probe = await fetch(`https://api.github.com/repos/${playbook}`, { headers, cache: "no-store" });
+      if (probe.ok) {
+        forgetSource();
+        throw new SetupError("That key can also see the owner's private playbook, so it was refused and forgotten. Make a key that can only see the energy figures.");
+      }
+      if (probe.status === 401) {
+        forgetSource();
+        throw new SetupError("GitHub didn't accept that key: it may be mistyped, expired or deleted. Paste a new one.");
+      }
     }
     const own = await fetch(`https://api.github.com/repos/${source.repo}`, { headers, cache: "no-store" });
     if (own.status === 404) {
