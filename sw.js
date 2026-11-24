@@ -1,9 +1,8 @@
 // Home Energy: keeps the page working offline, and shows push notifications once they're set up.
-// Version 7 (2026-11-24): Louis's Galaxy Tab A 10.1 (Chrome 138 on Android 8.1). The page is still
-// fetched fresh whenever there's internet, so a new version shows the first time the app is opened.
-// With no internet, or a very slow connection, the saved copy shows. If caching or alerts fail,
-// the page itself still loads.
-const SHELL = "home-energy-shell-v7";
+// Version 8 (2026-11-24): preview scale and a sturdier screen stay-on. The page is still fetched
+// fresh whenever there's internet. With no internet, or a very slow connection, the saved copy shows.
+// If caching or alerts fail, the page itself still loads.
+const SHELL = "home-energy-shell-v8";
 const DATA = "home-energy-data";
 const FILES = ["./", "index.html", "setup.html", "manifest.webmanifest", "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
 const PAGE_WAIT = 4000;     // milliseconds to wait for a fresh page before showing the saved one

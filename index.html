@@ -551,13 +551,21 @@
   .preview-bar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; padding: 12px 16px 8px; }
   .preview-bar strong { font-size: 15px; }
   .preview-bar .scale-note { color: #aeb8b4; font-size: 14px; }
-  .preview-bar select, .preview-bar input {
+  .preview-bar select, .preview-bar input[type="number"] {
     font: inherit; font-size: 14px; color: #e7ece9; background: #1d252c; border: 1px solid #334049;
     border-radius: 10px; padding: 8px 10px; min-height: 40px;
   }
-  .preview-stage { display: grid; place-items: center; min-height: 0; padding: 8px 16px 16px; }
-  .bezel { background: #0c1014; border-radius: 36px; padding: 16px; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45), inset 0 0 0 2px #2a333b; }
-  .bezel.phone { border-radius: 42px; padding: 12px; }
+  .preview-bar input[type="number"] { width: 5.5em; }
+  .preview-cal, .card-match { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
+  .preview-cal[hidden], .card-match[hidden] { display: none; }
+  .card-match p { flex-basis: 100%; margin: 0; color: #c5cdc8; font-size: 14px; }
+  .card-bar { position: relative; height: 54px; background: #f7f4ee; border-radius: 8px; box-shadow: inset 0 0 0 2px #e0b03a; }
+  .card-handle { position: absolute; top: 0; right: -10px; width: 20px; height: 54px; border: 0; border-radius: 6px; background: #e0b03a; cursor: ew-resize; }
+  .preview-stage { display: grid; place-items: center; min-height: 0; overflow: auto; padding: 8px 16px 16px; }
+  .preview-stage.overflowing { place-items: start center; }
+  .bezel { position: relative; background: #0c1014; border-radius: 36px; padding: 36px 16px 16px; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45), inset 0 0 0 2px #2a333b; }
+  .bezel.phone { border-radius: 42px; padding: 32px 12px 12px; }
+  .scale-badge { position: absolute; top: 8px; right: 16px; z-index: 2; background: #243028; color: #f4f7f5; font-size: 13px; font-weight: 750; letter-spacing: 0.02em; border-radius: 999px; padding: 3px 9px; }
   .bezel-fit { overflow: hidden; border-radius: 18px; background: #e6eeea; }
   .bezel-fit iframe { border: 0; display: block; background: #e6eeea; }
 </style>
@@ -620,7 +628,12 @@ const CARDS_KEY = "hidden-cards";
 const LOOK_KEY = "look";
 const CARE_KEY = "screen-care";
 const PREVIEW_KEY = "screen-preview";
+const SCALE_KEY = "screen-scale";
+const CAL_KEY = "screen-cal";
 const DEMO_KEY = "demo-mode";
+const TABLET_DIAG_IN = 10.1;
+const TABLET_CSS_DIAG = Math.hypot(1280, 800);
+const CARD_MM = 85.6;
 const ZONE = "Europe/London";
 const PERIODS = [["yesterday", "Yesterday"], ["this_month", "This month"], ["last_month", "Last month"], ["last_12_months", "12 months"]];
 const CARDS = [["now", "Right now"], ["energy", "Energy"], ["best", "Best times to use power"], ["start", "When to start the machines"],
@@ -643,7 +656,7 @@ const GAP_UNTIL = "2024-08-25";     // periods starting before this may have mis
 const live = { url: "", reading: store("live-last"), error: "", asked: 0, version: 0 };
 const days = { loaded: {} };                                    // each day's readings, by date
 const extra = { months: {}, years: {} };                        // month and year totals, for the bar charts
-let daily = null, dailyStale = false, wakeLock = null, chart = null, resizer = null, DEMO = false;
+let daily = null, dailyStale = false, wakeLock = null, wakeWanted = false, wakeHeld = false, wakeRetryAt = 0, chart = null, resizer = null, DEMO = false;
 (() => {
   const last = store("day-last");
   if (last && last.date && last.points) { days.loaded[last.date] = last; live.version = last.version || 0; }   // saved after cleanDay
@@ -2338,8 +2351,10 @@ function openSettings() {
   box.innerHTML = `<section class="set-block"><h3>How this screen looks</h3><div class="choice">${looks.map(([id, name, help]) =>
       `<label><input type="radio" name="look" value="${id}"${look === id ? " checked" : ""}><span><b>${name}</b><br><span class="set-help">${help}</span></span></label>`).join("")}</div></section>
     <section class="set-block"><h3>A screen that stays on</h3>
+      <p class="set-help">Screen stay-on: <b id="wake-state">${esc(wakeLabel())}</b></p>
+      ${wakeSupported() ? `<label class="set-check"><input type="checkbox" id="set-awake"${store("keep-awake") ? " checked" : ""}><span>Keep the screen on while this is open.</span></label>` : ""}
+      <p class="set-help">The most reliable way is Android Developer options, Stay awake (the screen stays on while charging), or Fully Kiosk.</p>
       <label class="set-check"><input type="checkbox" id="set-care"${screenCareOn() ? " checked" : ""}><span>Shift the picture a few millimetres every few minutes, so a fixed number doesn't burn into the screen.</span></label>
-      ${"wakeLock" in navigator ? `<label class="set-check"><input type="checkbox" id="set-awake"${store("keep-awake") ? " checked" : ""}><span>Keep the screen on while this is open.</span></label>` : `<p class="set-help">This browser can't keep the screen on by itself. On an iPad, set Auto-Lock to Never.</p>`}
     </section>
     <section class="set-block"><h3>Preview a screen size</h3>
       <p class="set-help">On a computer this starts as Louis's wall tablet: a Galaxy Tab A 10.1 from 2016, landscape, in Chrome (1280 × 752). Fullscreen is that same tablet with the status and navigation bars hidden (1280 × 800). On the tablet itself, leave this on Actual device. Other sizes are the layout size the page uses, about half a newer iPad's full pixel count.</p>
@@ -2351,6 +2366,16 @@ function openSettings() {
         <button type="button" class="btn" id="set-custom-go">Use this size</button>
       </div>
       <p class="set-help" id="set-preview-note" role="status"></p>
+      <label class="set-help">Scale <select class="set-select" id="set-scale" aria-label="Preview scale">
+        <option value="physical"${scaleChoice() === "physical" ? " selected" : ""}>Real physical size</option>
+        <option value="pixels"${scaleChoice() === "pixels" ? " selected" : ""}>1:1 pixels (100%)</option>
+        <option value="fit"${scaleChoice() === "fit" ? " selected" : ""}>Fit to window</option>
+      </select></label>
+      <div id="set-cal"${scaleChoice() === "physical" ? "" : " hidden"}>
+        <p class="set-help" id="set-detected"></p>
+        <div class="set-nums"><span>Monitor</span><input class="set-num" id="set-inches" type="number" min="8" max="100" step="0.1" inputmode="decimal" aria-label="Monitor diagonal in inches" value="${savedCal() && savedCal().kind === "diagonal" ? savedCal().inches : ""}"><span>inches</span></div>
+        <p class="set-help">Real physical size draws a 10.1 inch tablet at 10.1 inches. The detected resolution is this screen’s width and height times its pixel ratio. Or match a bank card on the bar above the frame. 1:1 pixels does not shrink. Fit to window does. A frame bigger than the window scrolls.</p>
+      </div>
     </section>
     <section class="set-block"><h3>Figures</h3>
       <p class="set-help">${DEMO ? "These are made-up sample figures. A key saved on this device is left as it is." : "Sample figures are made up, clearly labelled, so you can judge the layout before a key is saved."}</p>
@@ -2364,7 +2389,21 @@ function openSettings() {
   const care = box.querySelector("#set-care");
   if (care) care.onchange = () => { store(CARE_KEY, care.checked); applyDrift(); };
   const awake = box.querySelector("#set-awake");
-  if (awake) awake.onchange = () => { store("keep-awake", awake.checked); keepAwake(awake.checked); setStatus(); };
+  if (awake) awake.onchange = () => keepAwake(awake.checked);
+  const setScale = box.querySelector("#set-scale");
+  const setCal = box.querySelector("#set-cal");
+  const detected = box.querySelector("#set-detected");
+  if (detected) { const phys = monitorPhysical(); detected.textContent = `Detected ${phys.w} × ${phys.h}.`; }
+  if (setScale) setScale.onchange = () => {
+    store(SCALE_KEY, setScale.value);
+    if (setCal) setCal.hidden = setScale.value !== "physical";
+  };
+  const setInches = box.querySelector("#set-inches");
+  if (setInches) setInches.onchange = () => {
+    const inches = Math.round(+setInches.value * 10) / 10;
+    if (!(inches >= 8 && inches <= 100)) return;
+    store(CAL_KEY, { kind: "diagonal", inches: inches });
+  };
   const customRow = box.querySelector("#set-custom"), note = box.querySelector("#set-preview-note");
   box.querySelector("#set-preview").onchange = () => {
     const id = box.querySelector("#set-preview").value;
@@ -2393,21 +2432,78 @@ function openSettings() {
   else dialog.setAttribute("open", "");
 }
 
+function scaleChoice() {
+  const saved = store(SCALE_KEY);
+  return saved === "fit" || saved === "pixels" || saved === "physical" ? saved : "physical";
+}
+function savedCal() {
+  const saved = store(CAL_KEY);
+  if (!saved || typeof saved !== "object") return null;
+  if (saved.kind === "card" && saved.cardPx >= 40 && saved.cardPx <= 2000) return saved;
+  if (saved.kind === "diagonal" && saved.inches >= 8 && saved.inches <= 100) return saved;
+  return null;
+}
+function monitorPhysical() {
+  const dpr = window.devicePixelRatio || 1;
+  return { w: Math.round(screen.width * dpr), h: Math.round(screen.height * dpr), dpr: dpr };
+}
+function monitorCssPerInch() {
+  const cal = savedCal();
+  if (!cal) return null;
+  if (cal.kind === "card") return cal.cardPx / (CARD_MM / 25.4);
+  const phys = monitorPhysical();
+  return (Math.hypot(phys.w, phys.h) / phys.dpr) / cal.inches;
+}
+function previewScale(w, h) {
+  const mode = scaleChoice();
+  if (mode === "pixels") return 1;
+  if (mode === "physical") {
+    const perInch = monitorCssPerInch();
+    if (!perInch) return 1;
+    return perInch / (TABLET_CSS_DIAG / TABLET_DIAG_IN);
+  }
+  const bar = document.querySelector(".preview-bar");
+  const extra = document.getElementById("preview-card-box");
+  const used = (bar ? bar.offsetHeight : 72) + (extra && !extra.hidden ? extra.offsetHeight : 0) + 28;
+  return Math.max(0.2, Math.min((window.innerWidth - 48) / (w + 36), (window.innerHeight - used) / (h + 36), 1.75));
+}
+
 function mountPreview(preset) {
   const root = document.createElement("div");
   root.id = "preview-root";
+  const cal = savedCal();
+  const phys = monitorPhysical();
+  const mode = scaleChoice();
   root.innerHTML = `<div class="preview-bar"><strong id="preview-label"></strong><span class="scale-note" id="preview-scale"></span>
       <select id="preview-quick" aria-label="Preview screen size">${previewOptions(preset.id)}</select>
       <span id="preview-custom"${preset.id === "custom" ? "" : " hidden"}><input id="preview-w" type="number" min="240" max="4096" aria-label="Width" value="${preset.w}"><span> × </span><input id="preview-h" type="number" min="240" max="4096" aria-label="Height" value="${preset.h}"><button type="button" class="btn" id="preview-go">Use this size</button></span>
-    </div><div class="preview-stage"><div class="bezel${preset.w < 500 ? " phone" : ""}" id="bezel"><div class="bezel-fit" id="bezel-fit"><iframe id="preview-frame" title="Home energy at the chosen screen size"></iframe></div></div></div>`;
+      <label>Scale <select id="preview-scale-mode" aria-label="Preview scale">
+        <option value="physical"${mode === "physical" ? " selected" : ""}>Real physical size</option>
+        <option value="pixels"${mode === "pixels" ? " selected" : ""}>1:1 pixels (100%)</option>
+        <option value="fit"${mode === "fit" ? " selected" : ""}>Fit to window</option>
+      </select></label>
+      <span class="preview-cal" id="preview-cal"${mode === "physical" ? "" : " hidden"}>
+        <span id="preview-detected">Detected ${phys.w} × ${phys.h}</span>
+        <label>Monitor diagonal <input id="preview-inches" type="number" min="8" max="100" step="0.1" inputmode="decimal" aria-label="Monitor diagonal in inches" value="${cal && cal.kind === "diagonal" ? cal.inches : ""}"> in</label>
+        <button type="button" class="btn" id="preview-card-open">Match a bank card</button>
+      </span>
+      <div class="card-match" id="preview-card-box" hidden>
+        <p>Hold a bank card’s long side (85.6 mm) against this bar and drag the end until they match.</p>
+        <div class="card-bar" id="card-bar" style="width:${cal && cal.kind === "card" ? cal.cardPx : 324}px"><button type="button" class="card-handle" id="card-handle" aria-label="Drag to the width of a bank card"></button></div>
+        <button type="button" class="btn" id="card-save">Use this card width</button>
+      </div>
+    </div><div class="preview-stage"><div class="bezel${preset.w < 500 ? " phone" : ""}" id="bezel"><span class="scale-badge" id="scale-badge"></span><div class="bezel-fit" id="bezel-fit"><iframe id="preview-frame" title="Home energy at the chosen screen size"></iframe></div></div></div>`;
   document.body.appendChild(root);
   const frame = root.querySelector("#preview-frame");
   const url = new URL(location.href);
   url.searchParams.set("embed", "1");
   frame.src = url.pathname + url.search;
   const layout = next => {
+    if (!next) return;
+    const chosen = scaleChoice();
     root.querySelector("#bezel").classList.toggle("phone", next.w < 500);
-    const scale = Math.max(0.2, Math.min((window.innerWidth - 48) / (next.w + 36), (window.innerHeight - 88) / (next.h + 36), 1.75));
+    root.querySelector("#preview-cal").hidden = chosen !== "physical";
+    const scale = previewScale(next.w, next.h);
     const fit = root.querySelector("#bezel-fit");
     fit.style.width = Math.round(next.w * scale) + "px";
     fit.style.height = Math.round(next.h * scale) + "px";
@@ -2417,7 +2513,17 @@ function mountPreview(preset) {
     frame.style.transformOrigin = "top left";
     root.querySelector("#preview-label").textContent = next.label || `${next.w} × ${next.h}`;
     const pct = Math.round(scale * 100);
-    root.querySelector("#preview-scale").textContent = pct === 100 ? "Shown at actual size." : pct < 100 ? `Scaled to ${pct}% so it fits this screen.` : `Enlarged to ${pct}% to fill this screen.`;
+    root.querySelector("#scale-badge").textContent = pct + "%";
+    const active = savedCal();
+    const sentence = chosen === "fit" ? `Fit to window · ${pct}%`
+      : chosen === "pixels" ? `1:1 pixels · ${pct}%`
+      : !active ? `Real physical size · showing ${pct}% until you set the monitor size.`
+      : active.kind === "card" ? `Real physical size, from the bank card · ${pct}%`
+      : `Real physical size, ${active.inches} in monitor · ${pct}%`;
+    root.querySelector("#preview-scale").textContent = sentence;
+    const stage = root.querySelector(".preview-stage");
+    const bezel = root.querySelector("#bezel");
+    stage.classList.toggle("overflowing", chosen !== "fit" && (bezel.offsetWidth > stage.clientWidth || bezel.offsetHeight > stage.clientHeight));
   };
   layout(preset);
   window.addEventListener("resize", () => { const current = savedPreview(); if (current) layout(current); });
@@ -2432,7 +2538,53 @@ function mountPreview(preset) {
     if (!(w >= 240 && w <= 4096 && h >= 240 && h <= 4096)) return;
     writePreview({ id: "custom", w, h, label: `Custom · ${w} × ${h}` });
   };
+  root.querySelector("#preview-scale-mode").onchange = () => {
+    store(SCALE_KEY, root.querySelector("#preview-scale-mode").value);
+    const current = savedPreview();
+    if (current) layout(current);
+  };
+  root.querySelector("#preview-inches").onchange = () => {
+    const inches = Math.round(+root.querySelector("#preview-inches").value * 10) / 10;
+    if (!(inches >= 8 && inches <= 100)) return;
+    store(CAL_KEY, { kind: "diagonal", inches: inches });
+    const current = savedPreview();
+    if (current) layout(current);
+  };
+  root.querySelector("#preview-card-open").onclick = () => {
+    const box = root.querySelector("#preview-card-box");
+    box.hidden = !box.hidden;
+    const current = savedPreview();
+    if (current) layout(current);
+  };
+  const cardBar = root.querySelector("#card-bar");
+  const drag = event => {
+    const width = Math.round(Math.max(80, Math.min(1200, event.clientX - cardBar.getBoundingClientRect().left)));
+    cardBar.style.width = width + "px";
+  };
+  root.querySelector("#card-handle").addEventListener("pointerdown", event => {
+    event.preventDefault();
+    const move = ev => drag(ev);
+    const up = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  });
+  root.querySelector("#card-save").onclick = () => {
+    const cardPx = Math.round(cardBar.getBoundingClientRect().width);
+    if (!(cardPx >= 40 && cardPx <= 2000)) return;
+    store(CAL_KEY, { kind: "card", cardPx: cardPx });
+    const current = savedPreview();
+    if (current) layout(current);
+  };
   window.addEventListener("storage", event => {
+    if (event.key === SCALE_KEY || event.key === CAL_KEY) {
+      const select = root.querySelector("#preview-scale-mode");
+      select.value = scaleChoice();
+      const fresh = savedCal();
+      if (fresh && fresh.kind === "diagonal") root.querySelector("#preview-inches").value = fresh.inches;
+      const current = savedPreview();
+      if (current) layout(current);
+      return;
+    }
     if (event.key !== PREVIEW_KEY) return;
     const next = savedPreview();
     if (!next) { location.reload(); return; }
@@ -2450,14 +2602,15 @@ function setStatus() {
   const dateLine = new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: ZONE });
   el.textContent = DEMO ? `Sample figures · ${dateLine}` : dateLine;
   const button = document.getElementById("keep-awake");
-  if ("wakeLock" in navigator && daily) {
-    const on = !!store("keep-awake");
+  if (!button) return;
+  if (wakeSupported() && daily) {
+    const on = !!wakeLock;
     button.hidden = false;
-    button.setAttribute("aria-pressed", on);
+    button.setAttribute("aria-pressed", on ? "true" : "false");
     button.innerHTML = `${icon("screen")}<span class="chip-text">${on ? "Screen stays on" : "Keep screen on"}</span>`;
-    button.title = on ? "The screen stays on while this is open" : "Keep the screen on, for a tablet on the wall";
-    button.setAttribute("aria-label", "Keep the screen on");
-  }
+    button.title = on ? "The screen is staying on" : wakeWanted ? "Asked to stay on. It is off until the browser allows it." : "Keep the screen on, for a tablet on the wall";
+    button.setAttribute("aria-label", on ? "Screen stay-on is on" : "Keep the screen on");
+  } else button.hidden = true;
 }
 
 function cards() {
@@ -2530,7 +2683,7 @@ function wire() {
   document.querySelectorAll("button[data-appliance-period]").forEach(b => b.onclick = () => { store("appliance-period", b.dataset.appliancePeriod); refreshCards("appliances"); });
   wireEnergy();
   const awake = document.getElementById("keep-awake");
-  awake.onclick = () => { const on = !store("keep-awake"); store("keep-awake", on); keepAwake(on); setStatus(); };
+  if (awake) awake.onclick = () => keepAwake(!wakeWanted);
 }
 
 // ---- the live figures
@@ -2596,13 +2749,50 @@ async function refreshLive(force) {
   refreshCards("now", "energy", "start");                     // the start times move on with the clock
 }
 
+function wakeSupported() {
+  return !!(navigator.wakeLock && typeof navigator.wakeLock.request === "function");
+}
+function wakeLabel() {
+  if (!wakeSupported()) return "Not supported";
+  return wakeLock ? "On" : "Off";
+}
+function paintWake() {
+  const state = document.getElementById("wake-state");
+  if (state) state.textContent = wakeLabel();
+  setStatus();
+}
 async function keepAwake(on) {
+  wakeWanted = !!on;
+  store("keep-awake", wakeWanted);
+  if (!wakeSupported()) { paintWake(); return; }
+  if (!wakeWanted) {
+    const lock = wakeLock;
+    wakeLock = null;
+    paintWake();
+    if (lock) { try { await lock.release(); } catch (e) {} }
+    return;
+  }
+  if (document.visibilityState !== "visible" || wakeLock || wakeHeld) { paintWake(); return; }
+  wakeHeld = true;
   try {
-    if (on && !wakeLock && document.visibilityState === "visible") {
-      wakeLock = await navigator.wakeLock.request("screen");
-      wakeLock.addEventListener("release", () => { wakeLock = null; });
-    } else if (!on && wakeLock) { await wakeLock.release(); wakeLock = null; }
-  } catch (e) {}
+    const lock = await navigator.wakeLock.request("screen");
+    if (!wakeWanted) { try { await lock.release(); } catch (e) {} return; }
+    wakeLock = lock;
+    lock.addEventListener("release", () => {
+      if (wakeLock === lock) wakeLock = null;
+      paintWake();
+      if (!wakeWanted || document.visibilityState !== "visible") return;
+      const now = Date.now();
+      if (now < wakeRetryAt) return;
+      wakeRetryAt = now + 800;
+      setTimeout(() => { if (wakeWanted && !wakeLock) keepAwake(true); }, 50);
+    });
+  } catch (e) {
+    wakeLock = null;
+  } finally {
+    wakeHeld = false;
+  }
+  paintWake();
 }
 
 // ---- alerts (web push): the device's sign-up is saved in the private repository, where the daily job reads it
@@ -2829,11 +3019,14 @@ function boot() {
   setInterval(refresh, 30 * 60 * 1000);
   setInterval(() => refreshLive(), LIVE_EVERY);
   setInterval(() => { applyChrome(); applyDrift(); if (daily && !document.getElementById("setup")) renderHero(); }, 60 * 1000);
+  const retryWake = () => { if ((wakeWanted || store("keep-awake")) && !wakeLock) keepAwake(true); };
+  document.addEventListener("pointerdown", retryWake, true); // a first tap, if the browser withheld the lock
+  window.addEventListener("focus", retryWake);
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) return;
     refresh();
     refreshLive();
-    if (store("keep-awake")) keepAwake(true);                // the screen lock is let go whenever the app is hidden
+    if (wakeWanted || store("keep-awake")) keepAwake(true);  // the screen lock is let go whenever the app is hidden
   });
   if (store("keep-awake")) keepAwake(true);
 }
