@@ -1,8 +1,8 @@
 // Home Energy: keeps the page working offline, and shows push notifications once they're set up.
-// Version 5 (2026-10-23): the page itself is fetched fresh whenever there's internet, so a new version
-// shows the first time the app is opened (before, the saved copy showed first and the new one only
-// the time after). With no internet, or a very slow connection, the saved copy shows.
-const SHELL = "home-energy-shell-v5";
+// Version 6 (2026-11-24): the wall-tablet layout. The page is still fetched fresh whenever there's
+// internet, so a new version shows the first time the app is opened. With no internet, or a very
+// slow connection, the saved copy shows.
+const SHELL = "home-energy-shell-v6";
 const DATA = "home-energy-data";
 const FILES = ["./", "index.html", "setup.html", "manifest.webmanifest", "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
 const PAGE_WAIT = 4000;     // milliseconds to wait for a fresh page before showing the saved one
