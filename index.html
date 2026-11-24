@@ -3,11 +3,18 @@
 <head>
 <meta charset="utf-8">
 <script>
-/* Preview frames are decided before paint, so the real page doesn't flash on a computer. */
+/* Preview frames are decided before paint, so the real page doesn't flash on a computer.
+   A computer with nothing chosen yet starts on Louis's wall tablet. A touch screen stays as it is. */
 (function () {
   try {
+    if (navigator.deviceMemory <= 2) document.documentElement.classList.add("modest");
     if (new URLSearchParams(location.search).has("embed")) return;
     var saved = JSON.parse(localStorage.getItem("screen-preview") || "null");
+    var touch = (navigator.maxTouchPoints || 0) > 0 || (window.matchMedia && matchMedia("(pointer: coarse)").matches);
+    if (!saved && !touch) {
+      saved = { id: "tab-a-101-chrome-land", w: 1280, h: 752, label: "Galaxy Tab A 10.1 (2016), Louis's tablet · landscape, in Chrome · 1280 × 752" };
+      localStorage.setItem("screen-preview", JSON.stringify(saved));
+    }
     if (saved && saved.id && saved.id !== "actual" && saved.w > 0 && saved.h > 0) {
       document.documentElement.classList.add("preview-shell");
     }
@@ -135,6 +142,7 @@
   .status { margin-top: 3px; font-size: 14px; color: var(--ink-2); display: flex; align-items: center; gap: 7px; min-height: 20px; }
   .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
   .dot.live { background: var(--good); animation: pulse 2.4s ease-out infinite; }
+  html.modest .dot.live { animation: none; }
   .dot.late { background: var(--warning); }
   @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(12, 163, 12, 0.45); } 70%, 100% { box-shadow: 0 0 0 7px rgba(12, 163, 12, 0); } }
   .chip { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--line); background: var(--surface); border-radius: 999px;
@@ -461,6 +469,35 @@
     .tile-value { font-size: 34px; }
     .story { font-size: 24px; }
   }
+  /* Galaxy Tab A 10.1 (2016), landscape: 1280×800 fullscreen, about 1280×752 once
+     Android's status and navigation bars are on screen. Big figures, still one glance. */
+  @media (min-width: 1180px) and (max-height: 860px) {
+    .top { padding-block: 8px 0; }
+    h1 { font-size: 22px; }
+    .logo { width: 38px; height: 38px; }
+    #hero:not(:empty) { padding-top: 4px; }
+    .demo-banner { padding: 8px 14px; font-size: 15px; }
+    .glance { padding: 12px 18px; gap: 10px; }
+    .glance-top { grid-template-columns: minmax(320px, 360px) minmax(0, 1fr); gap: 12px; }
+    .glance-flow { white-space: nowrap; }
+    .ring-wrap { width: 128px; height: 128px; }
+    .ring-copy .pct { font-size: 42px; }
+    .hero-clock { font-size: 40px; }
+    .glance-flow { font-size: 18px; }
+    .metrics { gap: 4px 12px; }
+    .metric { padding: 2px 8px 3px; }
+    .metric b { font-size: 42px; }
+    .dayline { gap: 5px; }
+    .daybar { height: 26px; }
+    .glance-alert { padding: 5px 12px; }
+    .grid { padding-top: 8px; gap: 12px; }
+  }
+  @media (min-width: 720px) and (max-width: 900px) and (orientation: portrait) {
+    .metric b { font-size: 36px; }
+    .hero-clock { font-size: 40px; }
+    .ring-wrap { width: 132px; height: 132px; }
+    .ring-copy .pct { font-size: 42px; }
+  }
   @media (max-width: 719px) and (orientation: portrait) {
     .glance-battery { grid-template-columns: 112px minmax(0, 1fr); }
     .ring-wrap { width: 112px; height: 112px; }
@@ -479,6 +516,7 @@
   html.dim, html.dim body { background: #050706; color: var(--ink); }
   html.dim .demo-banner { background: #6e5618; color: #fff4d2; }
   html.care #board { transition: transform 1.8s ease-in-out; }
+  html.modest.care #board, html.modest .glance { transition: none; box-shadow: none; }
   @media (prefers-reduced-motion: reduce) { html.care #board { transition: none; } }
 
   /* settings */
@@ -1961,6 +1999,10 @@ document.addEventListener("click", e => {
 // ---- wall tablet: the glance board, sample figures, a preview frame, and dim night.
 // Sizes are the layout size the page uses (an iPad's points), not its full pixel count.
 const PREVIEW_PRESETS = [
+  { id: "tab-a-101-chrome-land", label: "Galaxy Tab A 10.1 (2016), Louis's tablet · landscape, in Chrome · 1280 × 752", w: 1280, h: 752, group: "Louis's tablet" },
+  { id: "tab-a-101-chrome-port", label: "Galaxy Tab A 10.1 (2016), Louis's tablet · portrait, in Chrome · 800 × 1232", w: 800, h: 1232, group: "Louis's tablet" },
+  { id: "tab-a-101-full-land", label: "Galaxy Tab A 10.1 (2016), Louis's tablet · landscape, fullscreen · 1280 × 800", w: 1280, h: 800, group: "Louis's tablet" },
+  { id: "tab-a-101-full-port", label: "Galaxy Tab A 10.1 (2016), Louis's tablet · portrait, fullscreen · 800 × 1280", w: 800, h: 1280, group: "Louis's tablet" },
   { id: "actual", label: "Actual device", group: "This screen" },
   { id: "ipad-102-land", label: "iPad 10.2 landscape · 1080 × 810", w: 1080, h: 810, group: "iPad" },
   { id: "ipad-102-port", label: "iPad 10.2 portrait · 810 × 1080", w: 810, h: 1080, group: "iPad" },
@@ -2300,7 +2342,7 @@ function openSettings() {
       ${"wakeLock" in navigator ? `<label class="set-check"><input type="checkbox" id="set-awake"${store("keep-awake") ? " checked" : ""}><span>Keep the screen on while this is open.</span></label>` : `<p class="set-help">This browser can't keep the screen on by itself. On an iPad, set Auto-Lock to Never.</p>`}
     </section>
     <section class="set-block"><h3>Preview a screen size</h3>
-      <p class="set-help">On a computer, the app sits in a frame of that size and is scaled to fit, so you can judge a tablet layout. On the tablet on the wall, leave this on Actual device. The sizes are the layout size the page uses, about half an iPad's full pixel count.</p>
+      <p class="set-help">On a computer this starts as Louis's wall tablet: a Galaxy Tab A 10.1 from 2016, landscape, in Chrome (1280 × 752). Fullscreen is that same tablet with the status and navigation bars hidden (1280 × 800). On the tablet itself, leave this on Actual device. Other sizes are the layout size the page uses, about half a newer iPad's full pixel count.</p>
       <select class="set-select" id="set-preview" aria-label="Preview screen size">${previewOptions(previewId)}</select>
       <div class="set-nums" id="set-custom"${previewId === "custom" ? "" : " hidden"}>
         <input class="set-num" id="set-w" type="number" min="240" max="4096" inputmode="numeric" aria-label="Width" value="${esc(custom.w || 1280)}">
@@ -2616,8 +2658,9 @@ async function lastAlert() {
 async function showAlertsStatus(source) {
   const box = document.getElementById("alerts-status");
   if (!box) return;
+  try {
   if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
-    box.textContent = "Alerts: on an iPad or iPhone they work in the app opened from the Home Screen (Share → Add to Home Screen).";
+    box.textContent = "Alerts aren't available in this browser, so none will be sent. The figures still show. On an iPhone or iPad, add the page to the Home Screen first.";
     return;
   }
   // the app's background helper (sw.js) receives the alerts; give it a few seconds to start
@@ -2654,6 +2697,9 @@ async function showAlertsStatus(source) {
       .then(() => { box.textContent = "Alerts: on. New alerts arrive with the morning update."; })
       .catch(e => { box.textContent = "Alerts: " + (e.message || e); });
   };
+  } catch (e) {
+    if (box.isConnected) box.textContent = "Alerts couldn't be set up on this device. The figures still show.";
+  }
 }
 
 // ---- setting up a device: its key is pasted once and kept on that device only
@@ -2770,6 +2816,7 @@ async function load() {
   }
 }
 function boot() {
+  if (navigator.deviceMemory <= 2) document.documentElement.classList.add("modest");
   applyChrome();
   applyDrift();
   document.getElementById("open-settings").onclick = openSettings;

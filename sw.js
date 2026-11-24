@@ -1,8 +1,9 @@
 // Home Energy: keeps the page working offline, and shows push notifications once they're set up.
-// Version 6 (2026-11-24): the wall-tablet layout. The page is still fetched fresh whenever there's
-// internet, so a new version shows the first time the app is opened. With no internet, or a very
-// slow connection, the saved copy shows.
-const SHELL = "home-energy-shell-v6";
+// Version 7 (2026-11-24): Louis's Galaxy Tab A 10.1 (Chrome 138 on Android 8.1). The page is still
+// fetched fresh whenever there's internet, so a new version shows the first time the app is opened.
+// With no internet, or a very slow connection, the saved copy shows. If caching or alerts fail,
+// the page itself still loads.
+const SHELL = "home-energy-shell-v7";
 const DATA = "home-energy-data";
 const FILES = ["./", "index.html", "setup.html", "manifest.webmanifest", "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
 const PAGE_WAIT = 4000;     // milliseconds to wait for a fresh page before showing the saved one
@@ -62,25 +63,32 @@ self.addEventListener("fetch", event => {
 });
 
 self.addEventListener("push", event => {
-  // Declarative Web Push ({"web_push": 8030, "notification": {...}}) or a plain {"title", "body"}
+  // Declarative Web Push ({"web_push": 8030, "notification": {...}}) or a plain {"title", "body"}.
+  // Chrome 138 understands both. A bad payload, or a tablet that can't raise a notification,
+  // must not break the page: try a plain note, and ignore a failure to remember it.
   let message = { title: "Home energy", body: "", navigate: "./" };
   try {
     const data = event.data ? event.data.json() : {};
     message = Object.assign(message, data.notification || data);
-  } catch (e) { message.body = event.data ? event.data.text() : ""; }
-  event.waitUntil(Promise.all([
-    self.registration.showNotification(message.title || "Home energy", {
-      body: message.body, icon: "icon-192.png", badge: "icon-192.png", tag: message.tag || undefined,
-      data: { navigate: message.navigate || "./" },
-    }),
+  } catch (e) {
+    try { message.body = event.data ? event.data.text() : ""; } catch (e2) {}
+  }
+  const title = message.title || "Home energy";
+  const data = { navigate: message.navigate || "./" };
+  function show(options) { return self.registration.showNotification(title, options); }
+  event.waitUntil(show({
+    body: message.body, icon: "icon-192.png", badge: "icon-192.png", tag: message.tag || undefined, data: data,
+  }).catch(() => show({ body: message.body || "New alert", data: data })).then(() =>
     caches.open(DATA).then(cache => cache.put("last-alert",
-      new Response(JSON.stringify({ at: Date.now(), body: message.body }), { headers: { "Content-Type": "application/json" } }))),
-  ]));
+      new Response(JSON.stringify({ at: Date.now(), body: message.body }), { headers: { "Content-Type": "application/json" } }))).catch(() => {})
+  ));
 });
 
 self.addEventListener("notificationclick", event => {
   event.notification.close();
   const target = (event.notification.data && event.notification.data.navigate) || "./";
-  event.waitUntil(self.clients.matchAll({ type: "window" }).then(list =>
-    list.length ? list[0].focus() : self.clients.openWindow(target)));
+  event.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(list => {
+    if (!list.length) return self.clients.openWindow(target);
+    return list[0].focus().catch(() => self.clients.openWindow(target));
+  }).catch(() => {}));
 });
