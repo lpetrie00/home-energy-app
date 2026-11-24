@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <script>
 /* Preview frames are decided before paint, so the real page doesn't flash on a computer.
-   A computer with nothing chosen yet starts on Louis's wall tablet. A touch screen stays as it is. */
+   A computer with nothing chosen yet starts on the wall tablet. A touch screen stays as it is. */
 (function () {
   try {
     if (navigator.deviceMemory <= 2) document.documentElement.classList.add("modest");
@@ -12,7 +12,7 @@
     var saved = JSON.parse(localStorage.getItem("screen-preview") || "null");
     var touch = (navigator.maxTouchPoints || 0) > 0 || (window.matchMedia && matchMedia("(pointer: coarse)").matches);
     if (!saved && !touch) {
-      saved = { id: "tab-a-101-chrome-land", w: 1280, h: 752, label: "Galaxy Tab A 10.1 (2016), Louis's tablet · landscape, in Chrome · 1280 × 752" };
+      saved = { id: "tab-a-101-chrome-land", w: 1280, h: 752, label: "Galaxy Tab A 10.1 (2016), the wall tablet · landscape, in Chrome · 1280 × 752" };
       localStorage.setItem("screen-preview", JSON.stringify(saved));
     }
     if (saved && saved.id && saved.id !== "actual" && saved.w > 0 && saved.h > 0) {
@@ -2128,10 +2128,10 @@ document.addEventListener("click", e => {
 // ---- wall tablet: the glance board, sample figures, a preview frame, and dim night.
 // Sizes are the layout size the page uses (an iPad's points), not its full pixel count.
 const PREVIEW_PRESETS = [
-  { id: "tab-a-101-chrome-land", label: "Galaxy Tab A 10.1 (2016), Louis's tablet · landscape, in Chrome · 1280 × 752", w: 1280, h: 752, group: "Louis's tablet" },
-  { id: "tab-a-101-chrome-port", label: "Galaxy Tab A 10.1 (2016), Louis's tablet · portrait, in Chrome · 800 × 1232", w: 800, h: 1232, group: "Louis's tablet" },
-  { id: "tab-a-101-full-land", label: "Galaxy Tab A 10.1 (2016), Louis's tablet · landscape, fullscreen · 1280 × 800", w: 1280, h: 800, group: "Louis's tablet" },
-  { id: "tab-a-101-full-port", label: "Galaxy Tab A 10.1 (2016), Louis's tablet · portrait, fullscreen · 800 × 1280", w: 800, h: 1280, group: "Louis's tablet" },
+  { id: "tab-a-101-chrome-land", label: "Galaxy Tab A 10.1 (2016), the wall tablet · landscape, in Chrome · 1280 × 752", w: 1280, h: 752, group: "the wall tablet" },
+  { id: "tab-a-101-chrome-port", label: "Galaxy Tab A 10.1 (2016), the wall tablet · portrait, in Chrome · 800 × 1232", w: 800, h: 1232, group: "the wall tablet" },
+  { id: "tab-a-101-full-land", label: "Galaxy Tab A 10.1 (2016), the wall tablet · landscape, fullscreen · 1280 × 800", w: 1280, h: 800, group: "the wall tablet" },
+  { id: "tab-a-101-full-port", label: "Galaxy Tab A 10.1 (2016), the wall tablet · portrait, fullscreen · 800 × 1280", w: 800, h: 1280, group: "the wall tablet" },
   { id: "actual", label: "Actual device", group: "This screen" },
   { id: "ipad-102-land", label: "iPad 10.2 landscape · 1080 × 810", w: 1080, h: 810, group: "iPad" },
   { id: "ipad-102-port", label: "iPad 10.2 portrait · 810 × 1080", w: 810, h: 1080, group: "iPad" },
@@ -2809,8 +2809,8 @@ const PERIOD_PICK_KEY = "usage-period";
 const DISMISS_TARIFFS_KEY = "dismissed-tariffs";
 const HOUSE_LIMIT_KW = 5;
 let tariffList = null, periodsFile = null, devicesFile = null, pagerReady = false;
-// The tariff list is a placeholder. loadTariffList() is the only place that supplies it.
-// Point that function at the spreadsheet (ENERGY_SHEET_ID) when its columns are known.
+// The tariff list comes from tariffs.json in the house's figures. loadTariffList() is the only
+// place that supplies it. The sample below is for demo mode, and for when that file is missing.
 // Do not invent prices anywhere else, and do not present this sample as the house's quotes.
 const SAMPLE_TARIFF_LIST = {
   source: "placeholder", updated: "2026-11-01", example: true,
@@ -3248,9 +3248,17 @@ async function dismissTariff(id, date) {
   try { await putJson(source, "dismissed-tariffs.json", body, "Dismiss a tariff saving"); } catch (e) {}
 }
 async function loadTariffList() {
-  // The only tariff-list loader. It returns the sample until the energy spreadsheet
-  // (the sheet id in ENERGY_SHEET_ID) is wired in. Replace this body, not the page.
-  tariffList = SAMPLE_TARIFF_LIST;
+  // Same idea as loadPeriods: the house's figures first, the sample only when that file isn't there.
+  if (DEMO) { tariffList = SAMPLE_TARIFF_LIST; return; }
+  try {
+    const response = await readHouseFile("tariffs.json");
+    if (response.status === 404) tariffList = SAMPLE_TARIFF_LIST;
+    else if (!response.ok) throw new Error("the tariffs answered " + response.status);
+    else {
+      const file = await response.json();
+      tariffList = file && Array.isArray(file.offers) ? file : SAMPLE_TARIFF_LIST;
+    }
+  } catch (e) { tariffList = SAMPLE_TARIFF_LIST; }
 }
 async function loadPeriods() {
   if (DEMO) { periodsFile = localPeriods() || DEMO_PERIODS; return; }
