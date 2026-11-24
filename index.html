@@ -631,8 +631,7 @@ const PREVIEW_KEY = "screen-preview";
 const SCALE_KEY = "screen-scale";
 const CAL_KEY = "screen-cal";
 const DEMO_KEY = "demo-mode";
-const TABLET_DIAG_IN = 10.1;
-const TABLET_CSS_DIAG = Math.hypot(1280, 800);
+const TABLET_MM_W = 217, TABLET_MM_H = 136, TABLET_CSS_W = 1280, TABLET_CSS_H = 800;
 const CARD_MM = 85.6;
 const ZONE = "Europe/London";
 const PERIODS = [["yesterday", "Yesterday"], ["this_month", "This month"], ["last_month", "Last month"], ["last_12_months", "12 months"]];
@@ -2372,9 +2371,14 @@ function openSettings() {
         <option value="fit"${scaleChoice() === "fit" ? " selected" : ""}>Fit to window</option>
       </select></label>
       <div id="set-cal"${scaleChoice() === "physical" ? "" : " hidden"}>
+        <p class="set-help">The best way is Match a bank card on the bar above the frame. A card is 85.6 mm, so the size is a real measurement and browser zoom cannot change it.</p>
         <p class="set-help" id="set-detected"></p>
-        <div class="set-nums"><span>Monitor</span><input class="set-num" id="set-inches" type="number" min="8" max="100" step="0.1" inputmode="decimal" aria-label="Monitor diagonal in inches" value="${savedCal() && savedCal().kind === "diagonal" ? savedCal().inches : ""}"><span>inches</span></div>
-        <p class="set-help">Real physical size draws a 10.1 inch tablet at 10.1 inches. The detected resolution is this screen’s width and height times its pixel ratio. Or match a bank card on the bar above the frame. 1:1 pixels does not shrink. Fit to window does. A frame bigger than the window scrolls.</p>
+        <div class="set-nums"><span>Monitor</span><input class="set-num" id="set-inches" type="number" min="8" max="100" step="0.1" inputmode="decimal" aria-label="Monitor diagonal in inches" value="${savedCal() && savedCal().inches ? savedCal().inches : ""}"><span>inches, native</span>
+          <input class="set-num" id="set-native-w" type="number" min="640" max="16000" inputmode="numeric" aria-label="Native width in pixels" value="">
+          <span>×</span>
+          <input class="set-num" id="set-native-h" type="number" min="480" max="16000" inputmode="numeric" aria-label="Native height in pixels" value="">
+          <button type="button" class="btn" id="set-monitor">Use this monitor</button></div>
+        <p class="set-help">The tablet’s picture is 217 × 136 mm. Type the resolution from the monitor’s own settings if the guess looks wrong. Zoom does not change a size that has been saved.</p>
       </div>
     </section>
     <section class="set-block"><h3>Figures</h3>
@@ -2393,16 +2397,23 @@ function openSettings() {
   const setScale = box.querySelector("#set-scale");
   const setCal = box.querySelector("#set-cal");
   const detected = box.querySelector("#set-detected");
-  if (detected) { const phys = monitorPhysical(); detected.textContent = `Detected ${phys.w} × ${phys.h}.`; }
+  const guess = guessNative();
+  const known = savedCal();
+  if (detected) detected.textContent = `Guessed just now, ${guess.w} × ${guess.h}. That guess moves if the browser is zoomed, so check it.`;
+  const nativeW = box.querySelector("#set-native-w"), nativeH = box.querySelector("#set-native-h");
+  if (nativeW) nativeW.value = known && known.nativeW ? known.nativeW : guess.w;
+  if (nativeH) nativeH.value = known && known.nativeH ? known.nativeH : guess.h;
   if (setScale) setScale.onchange = () => {
     store(SCALE_KEY, setScale.value);
     if (setCal) setCal.hidden = setScale.value !== "physical";
   };
-  const setInches = box.querySelector("#set-inches");
-  if (setInches) setInches.onchange = () => {
-    const inches = Math.round(+setInches.value * 10) / 10;
-    if (!(inches >= 8 && inches <= 100)) return;
-    store(CAL_KEY, { kind: "diagonal", inches: inches });
+  const useMonitor = box.querySelector("#set-monitor");
+  if (useMonitor) useMonitor.onclick = () => {
+    const inches = Math.round(+box.querySelector("#set-inches").value * 10) / 10;
+    const w = Math.round(+nativeW.value), h = Math.round(+nativeH.value);
+    const pxPerMm = pxPerMmFromDiagonal(inches, w, h);
+    if (!pxPerMm) return;
+    store(CAL_KEY, { kind: "diagonal", pxPerMm: pxPerMm, inches: inches, nativeW: w, nativeH: h });
   };
   const customRow = box.querySelector("#set-custom"), note = box.querySelector("#set-preview-note");
   box.querySelector("#set-preview").onchange = () => {
@@ -2438,42 +2449,66 @@ function scaleChoice() {
 }
 function savedCal() {
   const saved = store(CAL_KEY);
-  if (!saved || typeof saved !== "object") return null;
-  if (saved.kind === "card" && saved.cardPx >= 40 && saved.cardPx <= 2000) return saved;
-  if (saved.kind === "diagonal" && saved.inches >= 8 && saved.inches <= 100) return saved;
-  return null;
+  if (!saved || typeof saved !== "object" || !(saved.pxPerMm > 0.2 && saved.pxPerMm < 40)) return null;
+  return saved.kind === "card" || saved.kind === "diagonal" ? saved : null;
 }
-function monitorPhysical() {
+function guessNative() {
   const dpr = window.devicePixelRatio || 1;
   return { w: Math.round(screen.width * dpr), h: Math.round(screen.height * dpr), dpr: dpr };
 }
-function monitorCssPerInch() {
-  const cal = savedCal();
-  if (!cal) return null;
-  if (cal.kind === "card") return cal.cardPx / (CARD_MM / 25.4);
-  const phys = monitorPhysical();
-  return (Math.hypot(phys.w, phys.h) / phys.dpr) / cal.inches;
+function pxPerMmFromDiagonal(inches, nativeW, nativeH) {
+  if (!(inches >= 8 && inches <= 100 && nativeW >= 640 && nativeH >= 480 && nativeW <= 16000 && nativeH <= 16000)) return null;
+  return Math.hypot(nativeW, nativeH) / (inches * 25.4);
+}
+function pxPerMmFromCard(cardCssPx, dpr) {
+  if (!(cardCssPx >= 40 && cardCssPx <= 2000 && dpr > 0)) return null;
+  return cardCssPx * dpr / CARD_MM;
 }
 function previewScale(w, h) {
   const mode = scaleChoice();
-  if (mode === "pixels") return 1;
+  if (mode === "pixels") return { x: 1, y: 1 };
   if (mode === "physical") {
-    const perInch = monitorCssPerInch();
-    if (!perInch) return 1;
-    return perInch / (TABLET_CSS_DIAG / TABLET_DIAG_IN);
+    const cal = savedCal();
+    const dpr = window.devicePixelRatio || 1;
+    if (!cal) return { x: 1, y: 1 };
+    // Stored figure is hardware pixels per millimetre. Divide by the current pixel ratio once,
+    // so browser zoom and Windows scaling change the CSS scale and the millimetres stay put.
+    return {
+      x: (cal.pxPerMm / dpr) * (TABLET_MM_W / TABLET_CSS_W),
+      y: (cal.pxPerMm / dpr) * (TABLET_MM_H / TABLET_CSS_H),
+    };
   }
   const bar = document.querySelector(".preview-bar");
   const extra = document.getElementById("preview-card-box");
   const used = (bar ? bar.offsetHeight : 72) + (extra && !extra.hidden ? extra.offsetHeight : 0) + 28;
-  return Math.max(0.2, Math.min((window.innerWidth - 48) / (w + 36), (window.innerHeight - used) / (h + 36), 1.75));
+  const fit = Math.max(0.2, Math.min((window.innerWidth - 48) / (w + 36), (window.innerHeight - used) / (h + 36), 1.75));
+  return { x: fit, y: fit };
+}
+function measuredMm(w, h, scale) {
+  const cal = savedCal();
+  if (!cal || scaleChoice() !== "physical") return null;
+  const mmPerCss = (window.devicePixelRatio || 1) / cal.pxPerMm;
+  return { w: w * scale.x * mmPerCss, h: h * scale.y * mmPerCss };
+}
+function watchZoom(onChange) {
+  let query = null;
+  const arm = () => {
+    if (query) query.removeEventListener("change", changed);
+    query = window.matchMedia(`(resolution: ${window.devicePixelRatio || 1}dppx)`);
+    query.addEventListener("change", changed);
+  };
+  const changed = () => { arm(); onChange(); };
+  arm();
+  window.addEventListener("resize", onChange);
 }
 
 function mountPreview(preset) {
   const root = document.createElement("div");
   root.id = "preview-root";
   const cal = savedCal();
-  const phys = monitorPhysical();
+  const guess = guessNative();
   const mode = scaleChoice();
+  const cardStart = cal && cal.kind === "card" ? Math.round(cal.cardCssPx * cal.cardDpr / (window.devicePixelRatio || 1)) : 324;
   root.innerHTML = `<div class="preview-bar"><strong id="preview-label"></strong><span class="scale-note" id="preview-scale"></span>
       <select id="preview-quick" aria-label="Preview screen size">${previewOptions(preset.id)}</select>
       <span id="preview-custom"${preset.id === "custom" ? "" : " hidden"}><input id="preview-w" type="number" min="240" max="4096" aria-label="Width" value="${preset.w}"><span> × </span><input id="preview-h" type="number" min="240" max="4096" aria-label="Height" value="${preset.h}"><button type="button" class="btn" id="preview-go">Use this size</button></span>
@@ -2482,16 +2517,18 @@ function mountPreview(preset) {
         <option value="pixels"${mode === "pixels" ? " selected" : ""}>1:1 pixels (100%)</option>
         <option value="fit"${mode === "fit" ? " selected" : ""}>Fit to window</option>
       </select></label>
-      <span class="preview-cal" id="preview-cal"${mode === "physical" ? "" : " hidden"}>
-        <span id="preview-detected">Detected ${phys.w} × ${phys.h}</span>
-        <label>Monitor diagonal <input id="preview-inches" type="number" min="8" max="100" step="0.1" inputmode="decimal" aria-label="Monitor diagonal in inches" value="${cal && cal.kind === "diagonal" ? cal.inches : ""}"> in</label>
-        <button type="button" class="btn" id="preview-card-open">Match a bank card</button>
-      </span>
-      <div class="card-match" id="preview-card-box" hidden>
-        <p>Hold a bank card’s long side (85.6 mm) against this bar and drag the end until they match.</p>
-        <div class="card-bar" id="card-bar" style="width:${cal && cal.kind === "card" ? cal.cardPx : 324}px"><button type="button" class="card-handle" id="card-handle" aria-label="Drag to the width of a bank card"></button></div>
+      <div class="card-match" id="preview-card-box"${mode === "physical" ? "" : " hidden"}>
+        <p><b>Best method.</b> Hold a bank card’s long side (85.6 mm) against this bar and drag the end until they match. Zoom will not change the tablet after this.</p>
+        <div class="card-bar" id="card-bar" style="width:${cardStart}px"><button type="button" class="card-handle" id="card-handle" aria-label="Drag to the width of a bank card"></button></div>
         <button type="button" class="btn" id="card-save">Use this card width</button>
       </div>
+      <span class="preview-cal" id="preview-cal"${mode === "physical" ? "" : " hidden"}>
+        <span>Or the monitor:</span>
+        <label>Diagonal <input id="preview-inches" type="number" min="8" max="100" step="0.1" inputmode="decimal" aria-label="Monitor diagonal in inches" value="${cal && cal.inches ? cal.inches : ""}"> in</label>
+        <label>Native <input id="preview-native-w" type="number" min="640" max="16000" inputmode="numeric" aria-label="Native width in pixels" value="${cal && cal.nativeW ? cal.nativeW : guess.w}"> × <input id="preview-native-h" type="number" min="480" max="16000" inputmode="numeric" aria-label="Native height in pixels" value="${cal && cal.nativeH ? cal.nativeH : guess.h}"></label>
+        <button type="button" class="btn" id="preview-monitor">Use this monitor</button>
+        <span id="preview-detected">Guessed ${guess.w} × ${guess.h}. If the browser is zoomed, type the resolution from the monitor settings.</span>
+      </span>
     </div><div class="preview-stage"><div class="bezel${preset.w < 500 ? " phone" : ""}" id="bezel"><span class="scale-badge" id="scale-badge"></span><div class="bezel-fit" id="bezel-fit"><iframe id="preview-frame" title="Home energy at the chosen screen size"></iframe></div></div></div>`;
   document.body.appendChild(root);
   const frame = root.querySelector("#preview-frame");
@@ -2503,30 +2540,34 @@ function mountPreview(preset) {
     const chosen = scaleChoice();
     root.querySelector("#bezel").classList.toggle("phone", next.w < 500);
     root.querySelector("#preview-cal").hidden = chosen !== "physical";
+    root.querySelector("#preview-card-box").hidden = chosen !== "physical";
     const scale = previewScale(next.w, next.h);
     const fit = root.querySelector("#bezel-fit");
-    fit.style.width = Math.round(next.w * scale) + "px";
-    fit.style.height = Math.round(next.h * scale) + "px";
+    fit.style.width = Math.round(next.w * scale.x) + "px";
+    fit.style.height = Math.round(next.h * scale.y) + "px";
     frame.style.width = next.w + "px";
     frame.style.height = next.h + "px";
-    frame.style.transform = `scale(${scale})`;
+    frame.style.transform = `scale(${scale.x}, ${scale.y})`;
     frame.style.transformOrigin = "top left";
     root.querySelector("#preview-label").textContent = next.label || `${next.w} × ${next.h}`;
-    const pct = Math.round(scale * 100);
-    root.querySelector("#scale-badge").textContent = pct + "%";
+    const pct = Math.round(scale.x * 100);
+    const mm = measuredMm(next.w, next.h, scale);
+    root.querySelector("#scale-badge").textContent = mm ? `${Math.round(mm.w)} × ${Math.round(mm.h)} mm` : pct + "%";
     const active = savedCal();
     const sentence = chosen === "fit" ? `Fit to window · ${pct}%`
       : chosen === "pixels" ? `1:1 pixels · ${pct}%`
-      : !active ? `Real physical size · showing ${pct}% until you set the monitor size.`
-      : active.kind === "card" ? `Real physical size, from the bank card · ${pct}%`
-      : `Real physical size, ${active.inches} in monitor · ${pct}%`;
+      : !active ? `Real physical size · match a bank card, or type the monitor. Showing ${pct}% until then.`
+      : active.kind === "card" ? `Real size from the bank card · ${Math.round(mm.w)} × ${Math.round(mm.h)} mm`
+      : `Real size, ${active.inches} in monitor at ${active.nativeW} × ${active.nativeH} · ${Math.round(mm.w)} × ${Math.round(mm.h)} mm`;
     root.querySelector("#preview-scale").textContent = sentence;
+    const savedCard = active && active.kind === "card" ? active : null;
+    if (savedCard) root.querySelector("#card-bar").style.width = Math.round(savedCard.cardCssPx * savedCard.cardDpr / (window.devicePixelRatio || 1)) + "px";
     const stage = root.querySelector(".preview-stage");
     const bezel = root.querySelector("#bezel");
     stage.classList.toggle("overflowing", chosen !== "fit" && (bezel.offsetWidth > stage.clientWidth || bezel.offsetHeight > stage.clientHeight));
   };
   layout(preset);
-  window.addEventListener("resize", () => { const current = savedPreview(); if (current) layout(current); });
+  watchZoom(() => { const current = savedPreview(); if (current) layout(current); });
   root.querySelector("#preview-quick").onchange = () => {
     const id = root.querySelector("#preview-quick").value;
     root.querySelector("#preview-custom").hidden = id !== "custom";
@@ -2543,16 +2584,14 @@ function mountPreview(preset) {
     const current = savedPreview();
     if (current) layout(current);
   };
-  root.querySelector("#preview-inches").onchange = () => {
+  root.querySelector("#preview-monitor").onclick = () => {
     const inches = Math.round(+root.querySelector("#preview-inches").value * 10) / 10;
-    if (!(inches >= 8 && inches <= 100)) return;
-    store(CAL_KEY, { kind: "diagonal", inches: inches });
-    const current = savedPreview();
-    if (current) layout(current);
-  };
-  root.querySelector("#preview-card-open").onclick = () => {
-    const box = root.querySelector("#preview-card-box");
-    box.hidden = !box.hidden;
+    const nativeW = Math.round(+root.querySelector("#preview-native-w").value);
+    const nativeH = Math.round(+root.querySelector("#preview-native-h").value);
+    const pxPerMm = pxPerMmFromDiagonal(inches, nativeW, nativeH);
+    const note = root.querySelector("#preview-detected");
+    if (!pxPerMm) { note.textContent = "Use a diagonal from 8 to 100 inches, and a real resolution."; return; }
+    store(CAL_KEY, { kind: "diagonal", pxPerMm: pxPerMm, inches: inches, nativeW: nativeW, nativeH: nativeH });
     const current = savedPreview();
     if (current) layout(current);
   };
@@ -2571,7 +2610,8 @@ function mountPreview(preset) {
   root.querySelector("#card-save").onclick = () => {
     const cardPx = Math.round(cardBar.getBoundingClientRect().width);
     if (!(cardPx >= 40 && cardPx <= 2000)) return;
-    store(CAL_KEY, { kind: "card", cardPx: cardPx });
+    const dpr = window.devicePixelRatio || 1;
+    store(CAL_KEY, { kind: "card", pxPerMm: pxPerMmFromCard(cardPx, dpr), cardCssPx: cardPx, cardDpr: dpr });
     const current = savedPreview();
     if (current) layout(current);
   };
@@ -2580,7 +2620,11 @@ function mountPreview(preset) {
       const select = root.querySelector("#preview-scale-mode");
       select.value = scaleChoice();
       const fresh = savedCal();
-      if (fresh && fresh.kind === "diagonal") root.querySelector("#preview-inches").value = fresh.inches;
+      if (fresh && fresh.kind === "diagonal") {
+        root.querySelector("#preview-inches").value = fresh.inches;
+        root.querySelector("#preview-native-w").value = fresh.nativeW;
+        root.querySelector("#preview-native-h").value = fresh.nativeH;
+      }
       const current = savedPreview();
       if (current) layout(current);
       return;
