@@ -119,7 +119,7 @@
 
   * { box-sizing: border-box; }
   html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
-  html, body { margin: 0; background: var(--page); color: var(--ink); }
+  html, body { margin: 0; height: 100%; background: var(--page); color: var(--ink); overflow: hidden; }
   body { font: 16px/1.45 var(--font); padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
          -webkit-font-smoothing: antialiased; }
   .wrap { max-width: 1240px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px));
@@ -568,39 +568,154 @@
   .scale-badge { position: absolute; top: 8px; right: 16px; z-index: 2; background: #243028; color: #f4f7f5; font-size: 13px; font-weight: 750; letter-spacing: 0.02em; border-radius: 999px; padding: 3px 9px; }
   .bezel-fit { overflow: hidden; border-radius: 18px; background: #e6eeea; }
   .bezel-fit iframe { border: 0; display: block; background: #e6eeea; }
+
+  /* four full-screen pages, swiped sideways. Nothing on the page scrolls up and down. */
+  #board { height: 100%; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; overflow: hidden; }
+  #banner:empty { display: none; }
+  #banner:not(:empty) { padding: 6px 12px 0; }
+  .demo-banner, .stale-banner { border-radius: 10px; padding: 6px 12px; font-size: 14px; font-weight: 650; line-height: 1.3; }
+  .stale-banner { display: flex; gap: 8px; align-items: center; background: var(--note-bg); color: var(--note-ink); }
+  .pages { min-height: 0; display: flex; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scrollbar-width: none; touch-action: pan-x; }
+  .pages::-webkit-scrollbar { display: none; }
+  .page { flex: 0 0 100%; width: 100%; height: 100%; scroll-snap-align: start; scroll-snap-stop: always; overflow: hidden; min-width: 0; }
+  .page.setup-mode { overflow: auto; }
+  .pager { display: flex; justify-content: center; gap: 4px; padding: 2px 8px 6px; }
+  .pager button { border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 13px; font-weight: 750; padding: 4px 10px; border-radius: 999px; display: inline-flex; align-items: center; gap: 6px; min-height: 32px; cursor: pointer; }
+  .pager button[aria-current="true"] { background: var(--surface); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line); }
+  .pager .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; display: block; }
+
+  .ov { height: 100%; display: grid; grid-template-rows: auto minmax(0, 1.15fr) auto auto; gap: 8px; padding: 8px 12px 4px; }
+  .ov.no-alert { grid-template-rows: minmax(0, 1.15fr) auto auto; }
+  .ov-alert { display: flex; align-items: center; gap: 8px; background: var(--note-bg); color: var(--note-ink); border-radius: 12px; padding: 6px 12px; font-size: 15px; font-weight: 650; min-height: 0; }
+  .ov-alert .more { margin-left: auto; font-size: 13px; font-weight: 750; white-space: nowrap; }
+  .ov-mid { min-height: 0; display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(240px, 0.72fr); gap: 8px; }
+  .ov-flow, .ov-gauge, .ov-stats, .ov-wins { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; min-height: 0; overflow: hidden; }
+  .ov-flow { display: grid; place-items: center; padding: 4px 8px; }
+  .ov-flow .iso-scene { width: min(100%, 520px); max-height: 100%; }
+  .ov-flow .iso-scene svg { max-height: 100%; }
+  .ov-gauge { display: grid; align-content: center; gap: 6px; padding: 10px 14px; }
+  .gauge-k { font-size: 13px; font-weight: 750; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+  .gauge-w { font-size: 42px; font-weight: 750; letter-spacing: -0.04em; line-height: 1; font-variant-numeric: tabular-nums; }
+  .gauge-w small { font-size: 18px; font-weight: 650; margin-left: 2px; color: var(--ink-2); }
+  .gauge-bar { position: relative; height: 16px; border-radius: 999px; background: var(--well); overflow: hidden; }
+  .gauge-bar span { display: block; height: 100%; width: 0; border-radius: inherit; background: var(--good); }
+  .ov-gauge.warm .gauge-bar span { background: var(--warning); }
+  .ov-gauge.hot .gauge-bar span { background: var(--critical); }
+  .gauge-mark { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--ink); opacity: 0.35; }
+  .gauge-spare { font-size: 18px; font-weight: 750; }
+  .ov-gauge.warm .gauge-spare { color: #8a5a00; }
+  .ov-gauge.hot .gauge-spare { color: var(--critical); }
+  html[data-theme="dark"] .ov-gauge.warm .gauge-spare, html.dim .ov-gauge.warm .gauge-spare { color: #e0b03a; }
+  .gauge-key { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); font-weight: 650; }
+  .ov-stats, .ov-wins { padding: 8px 12px; display: grid; gap: 6px; align-content: center; }
+  .stat-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+  .stat b { display: block; font-size: 22px; font-weight: 750; letter-spacing: -0.03em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .stat b small { font-size: 13px; font-weight: 650; color: var(--ink-2); margin-left: 2px; }
+  .stat .k { font-size: 12px; font-weight: 750; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+  .stat .s { display: block; font-size: 12px; color: var(--ink-2); font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .wins-head { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+  .wins-head h2, .wins-head b { min-width: 0; }
+  .wins-head span { flex: none; }
+  .wins-head b { font-size: 14px; }
+  .wins-head span { font-size: 14px; font-weight: 700; color: var(--ink-2); }
+  .wins-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .win-slot { border: 1px solid var(--line); border-radius: 12px; padding: 6px 10px; background: var(--well); min-width: 0; }
+  .win-slot.now { border-color: var(--good); background: var(--good-soft); }
+  .win-slot b { display: block; font-size: 16px; }
+  .win-slot span, .win-slot small { display: block; font-size: 13px; color: var(--ink-2); font-weight: 650; }
+
+  .tariff-page, .alerts-page { height: 100%; display: grid; gap: 8px; padding: 8px 12px 4px; overflow: hidden; }
+  .tariff-page { grid-template-columns: minmax(280px, 0.85fr) minmax(0, 1.3fr); }
+  .alerts-page { grid-template-columns: minmax(260px, 0.75fr) minmax(0, 1.35fr); }
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; min-height: 0; overflow: hidden; padding: 8px 12px; display: flex; flex-direction: column; gap: 6px; }
+  .panel h2 { font-size: 16px; }
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .compare article { background: var(--well); border-radius: 12px; padding: 8px 10px; min-width: 0; }
+  .compare .k { font-size: 12px; font-weight: 750; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+  .compare b { display: block; font-size: 28px; letter-spacing: -0.03em; line-height: 1.05; }
+  .compare small { display: block; font-size: 13px; color: var(--ink-2); font-weight: 650; }
+  .offer { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; align-items: start; padding: 5px 0; border-top: 1px solid var(--line); font-size: 13.5px; }
+  .offer .who, .offer .rates { min-width: 0; }
+  .offer:first-of-type { border-top: 0; }
+  .offer b { font-size: 14px; }
+  .offer .save { font-weight: 750; text-align: right; white-space: nowrap; }
+  .offer a { font-weight: 700; color: var(--brand-text); }
+  .sample-flag, .old-flag { font-size: 13px; font-weight: 750; border-radius: 8px; padding: 4px 8px; }
+  .sample-flag { background: #f4c14d; color: #2a2108; }
+  .old-flag { background: var(--note-bg); color: var(--note-ink); }
+  .offers { min-height: 0; overflow: hidden; }
+  #page-history .card { height: 100%; margin: 0; border: 0; border-radius: 0; box-shadow: none; padding: 8px 12px 4px; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+  #page-history .card-head { margin-bottom: 6px; min-height: 0; }
+  #page-history .card-head h2 { font-size: 16px; }
+  #page-history .tiles { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
+  #page-history .tile { padding: 6px 8px; }
+  #page-history .tile-value { font-size: 20px; margin-top: 0; }
+  #page-history .period { margin-bottom: 6px; }
+  #page-history .ec { flex: 1; min-height: 0; overflow: hidden; }
+  #page-history .fine { font-size: 12px; margin-top: 4px !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #page-history .table-wrap { min-height: 0; overflow: auto; }
+  .devices-page { height: 100%; padding: 8px 12px 4px; overflow: hidden; }
+  .devices-page .panel { height: 100%; }
+  .device-empty { margin: auto; text-align: center; color: var(--ink-2); font-size: 18px; font-weight: 650; }
+  .device-row { display: grid; grid-template-columns: auto minmax(0, 1.4fr) repeat(3, minmax(0, 0.7fr)); gap: 6px 12px; align-items: baseline; padding: 6px 0; border-top: 1px solid var(--line); }
+  .device-row:first-of-type { border-top: 0; }
+  .device-row b { font-size: 16px; }
+  .device-row .rank { font-weight: 750; color: var(--muted); }
+  .month-line { display: flex; gap: 10px; justify-content: space-between; font-size: 13px; font-weight: 650; padding: 2px 0; border-top: 1px solid var(--line); }
+  .month-line span { white-space: nowrap; }
+  .period-row { display: flex; gap: 6px; align-items: center; min-width: 0; }
+  .period-row input { min-width: 0; }
+  .period-row input[type="date"] { width: 10.5em; flex: none; }
+  .period-row .set-select { flex: 1; min-width: 0; width: auto; }
+  .period-row .link-btn { flex: none; }
+  #alerts-settings { min-height: 0; overflow: hidden; display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; align-items: start; align-content: start; }
+  #alerts-settings .set-wide { grid-column: 1 / -1; }
+  #alerts-settings .set-block { gap: 4px; }
+  #alerts-settings .set-block h3 { font-size: 11px; }
+  #alerts-settings .set-help { font-size: 13px; padding: 0; }
+  #alerts-settings .choice { display: flex; flex-wrap: wrap; gap: 4px; }
+  #alerts-settings .choice label, #alerts-settings .set-check { font-size: 13px; padding: 3px 8px; align-items: center; width: auto; border-radius: 999px; }
+  #alerts-settings .set-check { border: 0; background: transparent; padding-left: 0; }
+  #alerts-settings .set-select, #alerts-settings .set-num { min-height: 32px; padding: 4px 8px; font-size: 14px; }
+  #alerts-settings .set-num { width: 5.4em; }
+  #alerts-settings .set-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  #alerts-settings .set-nums { flex-wrap: wrap; }
+  #alerts-settings .set-nums[hidden], #alerts-settings #set-cal[hidden] { display: none !important; }
+  #alerts-settings .btn { padding: 6px 14px; width: auto; justify-self: start; }
+  #alerts-settings .set-block:nth-child(3), #alerts-settings .set-block:nth-child(4) { grid-column: 1 / -1; }
+  #alerts-status { margin: 0; font-size: 13px; color: var(--ink-2); }
+  #page-alerts .alert { padding: 6px 0; }
+  #page-alerts .alert-details { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  @media (max-width: 720px) and (min-height: 680px) {
+    .ov-mid, .tariff-page, .alerts-page { grid-template-columns: 1fr; }
+    .alerts-page { grid-template-rows: auto minmax(0, 1fr); }
+    .stat-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    #page-history .tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    #alerts-settings { grid-template-columns: 1fr; overflow: auto; }
+    #page-alerts .alert-details, #alerts-settings #set-detected { display: none; }
+    .pager button { font-size: 12px; padding: 4px 6px; }
+  }
+  @media (max-height: 520px) {
+    .ov { gap: 4px; padding: 4px 8px; }
+    .gauge-w { font-size: 28px; }
+    .stat b { font-size: 16px; }
+    .compare b { font-size: 20px; }
+    .pager button { font-size: 12px; min-height: 28px; padding: 2px 8px; }
+  }
 </style>
 </head>
 <body>
 <div id="board">
-<header class="top wrap">
-  <div class="top-row">
-    <div class="title">
-      <span class="logo" aria-hidden="true"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg></span>
-      <div>
-        <h1>Home energy</h1>
-        <p class="status" id="status">Loading…</p>
-      </div>
-    </div>
-    <div class="top-actions">
-      <button class="chip" id="open-settings" type="button" aria-haspopup="dialog" aria-controls="settings" aria-label="Settings"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg><span class="chip-text">Settings</span></button>
-      <button class="chip" id="keep-awake" type="button" aria-pressed="false" hidden></button>
-    </div>
-  </div>
-</header>
-<div class="wrap" id="banner"></div>
-<div class="wrap" id="hero"></div>
-<main class="grid wrap" id="main">
-  <section class="card wide"><p class="muted">Loading the latest figures…</p></section>
-</main>
-<footer class="wrap" id="footer"></footer>
+<div id="banner"></div>
+<div class="pages" id="pages" tabindex="0">
+  <section class="page" id="page-overview" data-page="overview" aria-label="Overview"><p class="muted" style="padding:16px">Loading the latest figures…</p></section>
+  <section class="page" id="page-tariffs" data-page="tariffs" aria-label="Tariffs"></section>
+  <section class="page" id="page-devices" data-page="devices" aria-label="Devices"></section>
+  <section class="page" id="page-history" data-page="history" aria-label="History"></section>
+  <section class="page" id="page-alerts" data-page="alerts" aria-label="Alerts and settings"></section>
 </div>
-<dialog id="settings" class="settings" aria-labelledby="settings-title">
-  <div class="settings-head">
-    <h2 id="settings-title">Settings</h2>
-    <button type="button" class="icon-btn" id="settings-close" aria-label="Close settings"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
-  </div>
-  <div id="settings-body"></div>
-</dialog>
+<nav class="pager" id="pager" aria-label="Pages"></nav>
+</div>
 <script>
 "use strict";
 const PAGE_QUERY = new URLSearchParams(location.search);
@@ -1604,7 +1719,9 @@ function drawEnergy() {
   const step = niceStep(Math.max(up, down, day ? 0.4 : 1));
   let top = Math.max(step, Math.ceil(up / step - 1e-9) * step), bottom = Math.max(step, Math.ceil(down / step - 1e-9) * step);
   const label = v => (Math.round(Math.abs(v) * 100) / 100).toLocaleString("en-GB");
-  const padR = 6, PT = 8, H = W < 520 ? 220 : W < 900 ? 280 : 340;
+  const padR = 6, PT = 8, room = box.clientHeight, levelExtra = day ? 92 : 0;
+  const fitted = room > 160 ? room - levelExtra - 8 : 0;
+  const H = fitted > 100 ? Math.max(100, Math.min(300, fitted)) : (W < 520 ? 160 : W < 900 ? 200 : 240);
   let padL, plotW, slot, x, k;
   for (let tries = 0; ; tries++) {
     let longest = 1;                                          // room for the longest number on the scale
@@ -2202,9 +2319,11 @@ function buildDemo() {
     version: 1, made, today, demo: true,
     numbers: {
       yesterday: period(4.8, 22.4, 19.1, 0.6, 4.15, 2.4, 1),
+      week: period(18, 80, 62, 3, 18.4, 7, 7),
       this_month: period(96, 480, 410, 8, 86.4, 34, 23),
       last_month: period(160, 610, 490, 22, 118, 41, 31),
       last_12_months: period(3600, 7200, 5400, 800, 1280, 460, 360),
+      by_month: demoMonths(),
     },
     best_times: {
       made,
@@ -2214,7 +2333,15 @@ function buildDemo() {
         { date: shiftDate(today, 1), label: "Tomorrow", solar_kwh: 6.1, spare_kwh: 0.6, hours: hours(0),
           text: "Best: 03:00–06:00, 12:00–15:00 and 19:30–22:30, about 15p. A quiet sample day." },
       ],
-      battery_plan: { text: "Sample: the battery charges in the cheap windows, 03:00–06:00, 12:00–15:00 and 19:30–22:30." },
+      battery_plan: {
+        text: "Sample: the battery charges in the cheap windows, 03:00–06:00, 12:00–15:00 and 19:30–22:30.",
+        level_pct: 80, windows: "03:00–06:00, 12:00–15:00, 19:30–22:30",
+        slots: [
+          { from: "03:00", to: "06:00", level_pct: 80, sunday_level_pct: 64 },
+          { from: "12:00", to: "15:00", level_pct: 80, sunday_level_pct: 100 },
+          { from: "19:30", to: "22:30", level_pct: 80, sunday_level_pct: 80 },
+        ],
+      },
     },
     alerts: [
       { id: "sample-watch", level: "watch", text: "Sample alert: the battery was getting low before the evening cheap window.",
@@ -2264,6 +2391,19 @@ function buildDemo() {
   };
   return { daily: dailyDemo, reading, day };
 }
+function demoMonths() {
+  // made-up months so the sample period has something to add up. Not this house.
+  const today = londonDate(), out = [];
+  for (let i = 0; i < 11; i++) {
+    const month = new Date(Date.UTC(2026, i, 15)).toISOString().slice(0, 7);
+    if (month > today.slice(0, 7)) break;
+    const days = month === today.slice(0, 7) ? Math.max(1, +today.slice(8) - 1) : 30;
+    const bought = 90 - i * 4, sold = 4 + i;
+    out.push({ month, days, solar_kwh: 70 + i * 8, bought_kwh: bought, sold_kwh: sold,
+               cost_gbp: Math.round(bought * 0.2 * 10) / 10, export_gbp: Math.round(sold * 0.05 * 10) / 10 });
+  }
+  return out;
+}
 function startDemo() {
   DEMO = true;
   const built = buildDemo();
@@ -2276,8 +2416,9 @@ function startDemo() {
   live.asked = Date.now();
   days.loaded = {};
   days.loaded[built.day.date] = built.day;
-  const main = document.getElementById("main");
-  if (main) main.innerHTML = "";
+  tariffList = SAMPLE_TARIFF_LIST;
+  periodsFile = localPeriods() || DEMO_PERIODS;
+  devicesFile = SAMPLE_DEVICES;
   render();
 }
 
@@ -2339,25 +2480,30 @@ function renderHero() {
 }
 
 function openSettings() {
-  const box = document.getElementById("settings-body"), dialog = document.getElementById("settings");
-  if (!box || !dialog) return;
+  const box = document.getElementById("alerts-settings");
+  if (!box) return;
   const look = lookChoice(), preview = savedPreview(), previewId = preview ? preview.id : "actual", custom = store(PREVIEW_KEY) || {};
   const hidden = store(CARDS_KEY) || {}, source = store(SOURCE_KEY);
   const looks = [["auto", "Match this device", "Follows the device's own light or dark setting."],
     ["day", "Day", "Bright, for a room with the lights on."],
     ["night", "Dim night", "Very dark, for a screen left on in a dark room. Easier on the panel, and it uses less power."],
     ["evening", "Dim after 10pm", "Daytime stays bright. From 10pm to 7am it dims on its own."]];
-  box.innerHTML = `<section class="set-block"><h3>How this screen looks</h3><div class="choice">${looks.map(([id, name, help]) =>
-      `<label><input type="radio" name="look" value="${id}"${look === id ? " checked" : ""}><span><b>${name}</b><br><span class="set-help">${help}</span></span></label>`).join("")}</div></section>
-    <section class="set-block"><h3>A screen that stays on</h3>
-      <p class="set-help">Screen stay-on: <b id="wake-state">${esc(wakeLabel())}</b></p>
-      ${wakeSupported() ? `<label class="set-check"><input type="checkbox" id="set-awake"${store("keep-awake") ? " checked" : ""}><span>Keep the screen on while this is open.</span></label>` : ""}
-      <p class="set-help">The most reliable way is Android Developer options, Stay awake (the screen stays on while charging), or Fully Kiosk.</p>
-      <label class="set-check"><input type="checkbox" id="set-care"${screenCareOn() ? " checked" : ""}><span>Shift the picture a few millimetres every few minutes, so a fixed number doesn't burn into the screen.</span></label>
+  box.innerHTML = `<section class="set-block"><h3>How this screen looks</h3><div class="choice">${looks.map(([id, name]) =>
+      `<label><input type="radio" name="look" value="${id}"${look === id ? " checked" : ""}><span>${name}</span></label>`).join("")}</div></section>
+    <section class="set-block"><h3>Keep the screen on</h3>
+      ${wakeSupported() ? `<label class="set-check"><input type="checkbox" id="set-awake"${store("keep-awake") ? " checked" : ""}><span>Keep the screen on while this is open. Stay-on: <b id="wake-state">${esc(wakeLabel())}</b></span></label><button class="chip" id="keep-awake" type="button" aria-pressed="false"></button>` : `<p class="set-help">This browser cannot keep the screen on.</p>`}
+      <p class="set-help">Stay awake in Android Developer options, or Fully Kiosk, keeps it on while charging.</p>
+      <label class="set-check"><input type="checkbox" id="set-care"${screenCareOn() ? " checked" : ""}><span>Shift the picture a few millimetres every few minutes.</span></label>
     </section>
-    <section class="set-block"><h3>Preview a screen size</h3>
-      <p class="set-help">On a computer this starts as Louis's wall tablet: a Galaxy Tab A 10.1 from 2016, landscape, in Chrome (1280 × 752). Fullscreen is that same tablet with the status and navigation bars hidden (1280 × 800). On the tablet itself, leave this on Actual device. Other sizes are the layout size the page uses, about half a newer iPad's full pixel count.</p>
-      <select class="set-select" id="set-preview" aria-label="Preview screen size">${previewOptions(previewId)}</select>
+    <section class="set-block"><h3>Preview and scale</h3>
+      <div class="set-pair">
+        <select class="set-select" id="set-preview" aria-label="Preview screen size">${previewOptions(previewId)}</select>
+        <select class="set-select" id="set-scale" aria-label="Preview scale">
+          <option value="physical"${scaleChoice() === "physical" ? " selected" : ""}>Real physical size</option>
+          <option value="pixels"${scaleChoice() === "pixels" ? " selected" : ""}>1:1 pixels (100%)</option>
+          <option value="fit"${scaleChoice() === "fit" ? " selected" : ""}>Fit to window</option>
+        </select>
+      </div>
       <div class="set-nums" id="set-custom"${previewId === "custom" ? "" : " hidden"}>
         <input class="set-num" id="set-w" type="number" min="240" max="4096" inputmode="numeric" aria-label="Width" value="${esc(custom.w || 1280)}">
         <span>×</span>
@@ -2365,28 +2511,18 @@ function openSettings() {
         <button type="button" class="btn" id="set-custom-go">Use this size</button>
       </div>
       <p class="set-help" id="set-preview-note" role="status"></p>
-      <label class="set-help">Scale <select class="set-select" id="set-scale" aria-label="Preview scale">
-        <option value="physical"${scaleChoice() === "physical" ? " selected" : ""}>Real physical size</option>
-        <option value="pixels"${scaleChoice() === "pixels" ? " selected" : ""}>1:1 pixels (100%)</option>
-        <option value="fit"${scaleChoice() === "fit" ? " selected" : ""}>Fit to window</option>
-      </select></label>
       <div id="set-cal"${scaleChoice() === "physical" ? "" : " hidden"}>
-        <p class="set-help">The best way is Match a bank card on the bar above the frame. A card is 85.6 mm, so the size is a real measurement and browser zoom cannot change it.</p>
         <p class="set-help" id="set-detected"></p>
         <div class="set-nums"><span>Monitor</span><input class="set-num" id="set-inches" type="number" min="8" max="100" step="0.1" inputmode="decimal" aria-label="Monitor diagonal in inches" value="${savedCal() && savedCal().inches ? savedCal().inches : ""}"><span>inches, native</span>
           <input class="set-num" id="set-native-w" type="number" min="640" max="16000" inputmode="numeric" aria-label="Native width in pixels" value="">
           <span>×</span>
           <input class="set-num" id="set-native-h" type="number" min="480" max="16000" inputmode="numeric" aria-label="Native height in pixels" value="">
           <button type="button" class="btn" id="set-monitor">Use this monitor</button></div>
-        <p class="set-help">The tablet’s picture is 217 × 136 mm. Type the resolution from the monitor’s own settings if the guess looks wrong. Zoom does not change a size that has been saved.</p>
       </div>
     </section>
-    <section class="set-block"><h3>Figures</h3>
-      <p class="set-help">${DEMO ? "These are made-up sample figures. A key saved on this device is left as it is." : "Sample figures are made up, clearly labelled, so you can judge the layout before a key is saved."}</p>
-      <div class="actions"><button type="button" class="btn${DEMO ? " quiet" : ""}" id="set-demo">${DEMO ? "Use real figures" : "Show sample figures"}</button></div>
-    </section>
-    <section class="set-block"><h3>Cards on this screen</h3>
-      <div class="checks">${CARDS.map(([id, name]) => `<label><input type="checkbox" data-card="${id}"${hidden[id] ? "" : " checked"}>${esc(name)}</label>`).join("")}</div>
+    ${periodEditorHtml()}
+    <section class="set-block set-wide"><h3>Figures</h3>
+      <button type="button" class="btn${DEMO ? " quiet" : ""}" id="set-demo">${DEMO ? "Use real figures" : "Show sample figures"}</button>
     </section>
     ${source ? `<section class="set-block"><h3>This device's key</h3><p class="set-help">Forgetting the key takes you back to set-up. The figures themselves stay where they are.</p><button type="button" class="btn quiet" id="set-forget">Forget this device's key</button></section>` : ""}`;
   box.querySelectorAll('input[name="look"]').forEach(input => input.onchange = () => { store(LOOK_KEY, input.value); applyChrome(); });
@@ -2399,7 +2535,7 @@ function openSettings() {
   const detected = box.querySelector("#set-detected");
   const guess = guessNative();
   const known = savedCal();
-  if (detected) detected.textContent = `Guessed just now, ${guess.w} × ${guess.h}. That guess moves if the browser is zoomed, so check it.`;
+  if (detected) detected.textContent = `Guessed ${guess.w} × ${guess.h}. Zoom changes that guess, so check it.`;
   const nativeW = box.querySelector("#set-native-w"), nativeH = box.querySelector("#set-native-h");
   if (nativeW) nativeW.value = known && known.nativeW ? known.nativeW : guess.w;
   if (nativeH) nativeH.value = known && known.nativeH ? known.nativeH : guess.h;
@@ -2433,14 +2569,39 @@ function openSettings() {
   box.querySelector("#set-demo").onclick = () => setDemo(!DEMO);
   const forget = box.querySelector("#set-forget");
   if (forget) forget.onclick = () => { forgetSource(); location.reload(); };
-  box.querySelectorAll("[data-card]").forEach(input => input.onchange = () => {
-    const chosen = store(CARDS_KEY) || {};
-    if (input.checked) delete chosen[input.dataset.card]; else chosen[input.dataset.card] = Date.now();
-    store(CARDS_KEY, chosen);
-    render();
-  });
-  if (typeof dialog.showModal === "function") { if (!dialog.open) dialog.showModal(); }
-  else dialog.setAttribute("open", "");
+  wirePeriods(box);
+}
+function periodEditorHtml() {
+  const file = periodsFile || {};
+  const rows = (file.example && !DEMO ? [] : (file.periods || [])).map(p => `<div class="period-row" data-id="${esc(p.id || "")}">
+      <input class="set-num" type="date" data-period-start aria-label="Period start" value="${esc(p.start || "")}">
+      <input class="set-select" data-period-label aria-label="Period label" maxlength="80" value="${esc(p.label || "")}">
+      <button type="button" class="link-btn" data-period-remove>Remove</button></div>`).join("");
+  return `<section class="set-block"><h3>Periods</h3>
+    <p class="set-help">A start date for the current tariff, or a big change such as another battery.</p>
+    ${file.example && !DEMO ? `<p class="set-help">The saved list is only an example. Add your own dates and save.</p>` : ""}
+    <div id="period-rows">${rows}</div>
+    <div class="set-nums"><button type="button" class="btn quiet" id="period-add">Add a period</button>
+      <button type="button" class="btn" id="period-save">Save periods</button></div>
+    <p class="set-help" id="period-status" role="status"></p></section>`;
+}
+function wirePeriods(box) {
+  const rows = box.querySelector("#period-rows");
+  if (!rows) return;
+  const add = (start, label) => {
+    const row = document.createElement("div");
+    row.className = "period-row";
+    row.innerHTML = `<input class="set-num" type="date" data-period-start aria-label="Period start" value="${esc(start || "")}">
+      <input class="set-select" data-period-label aria-label="Period label" maxlength="80" value="${esc(label || "")}">
+      <button type="button" class="link-btn" data-period-remove>Remove</button>`;
+    row.querySelector("[data-period-remove]").onclick = () => row.remove();
+    rows.appendChild(row);
+  };
+  rows.querySelectorAll("[data-period-remove]").forEach(b => b.onclick = () => b.closest(".period-row").remove());
+  const addBtn = box.querySelector("#period-add");
+  if (addBtn) addBtn.onclick = () => add(londonDate(), "");
+  const save = box.querySelector("#period-save");
+  if (save) save.onclick = () => savePeriods(box);
 }
 
 function scaleChoice() {
@@ -2641,10 +2802,523 @@ function mountPreview(preset) {
 
 
 // ---- the page
+const PAGE_KEY = "screen-page";
+const PAGES = [["overview", "Overview"], ["tariffs", "Tariffs"], ["devices", "Devices"], ["history", "History"], ["alerts", "Alerts"]];
+const STATS_KEY = "stats-period";
+const PERIOD_PICK_KEY = "usage-period";
+const DISMISS_TARIFFS_KEY = "dismissed-tariffs";
+const HOUSE_LIMIT_KW = 5;
+let tariffList = null, periodsFile = null, devicesFile = null, pagerReady = false;
+// The tariff list is a placeholder. loadTariffList() is the only place that supplies it.
+// Point that function at the spreadsheet (ENERGY_SHEET_ID) when its columns are known.
+// Do not invent prices anywhere else, and do not present this sample as the house's quotes.
+const SAMPLE_TARIFF_LIST = {
+  source: "placeholder", updated: "2026-11-01", example: true,
+  price_cap: { name: "Standard variable (price cap)", region: "Example region", quarter: "Example quarter", import_p: 28, standing_p_day: 55, export_p: 0, url: "https://example.com/price-cap" },
+  offers: [
+    { id: "example-fixed-12", supplier: "Example Power", name: "Example Fixed 12", import_p: 8, standing_p_day: 20, export_p: 8, url: "https://example.com/fixed", checked: "2026-11-01", example: true },
+    { id: "example-tracker", supplier: "Example Energy", name: "Example Tracker", import_p: 24, standing_p_day: 50, export_p: 6, url: "https://example.com/tracker", checked: "2026-11-01", example: true },
+    { id: "sample-overnight", supplier: "Sample Supplier", name: "Sample Overnight", import_p: [30, 10], standing_p_day: 48, export_p: 4, url: "https://example.com/overnight", checked: "2026-11-01", example: true },
+    { id: "made-up-standard", supplier: "Made-up Gas and Power", name: "Made-up Standard", import_p: 27, standing_p_day: 60, export_p: 0, url: "https://example.com/standard", checked: "2026-11-01", example: true },
+  ],
+};
+const DEMO_PERIODS = {
+  example: true,
+  periods: [
+    { id: "example-tariff", start: "2026-01-15", label: "Example tariff (not yours)" },
+    { id: "example-battery", start: "2026-06-01", label: "Example: second battery" },
+  ],
+};
+const SAMPLE_DEVICES = {
+  example: true, updated: "2026-11-24T12:00:00Z",
+  devices: [
+    { id: "plug-wash", name: "Washing machine", watts: 40, kwh_today: 1.4, updated: "2026-11-24T12:00:00Z" },
+    { id: "plug-dry", name: "Tumble dryer", watts: 0, kwh_today: 2.6, updated: "2026-11-24T12:00:00Z" },
+    { id: "plug-dish", name: "Dishwasher", watts: 210, kwh_today: 0.9, updated: "2026-11-24T12:00:00Z" },
+  ],
+};
+
+function pageId() {
+  const saved = store(PAGE_KEY);
+  return PAGES.some(([id]) => id === saved) ? saved : "overview";
+}
+function clockMinutes(text) {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(text || "");
+  return m ? +m[1] * 60 + +m[2] : null;
+}
+function shownAlerts() {
+  const hidden = store(HIDDEN_KEY) || {}, rank = { problem: 0, watch: 1, money: 2, reminder: 3 };
+  const dailyOnes = ((daily && daily.alerts) || []).filter(a => !hidden[a.id]);
+  return dailyOnes.concat(tariffSavingAlerts()).sort((a, b) => (rank[a.level] ?? 9) - (rank[b.level] ?? 9));
+}
+function periodChoice(key, fallback) {
+  const saved = store(key);
+  return saved === "day" || saved === "week" || saved === "month" || saved === "year" ? saved : fallback;
+}
+function roofKwh(d) {
+  if (!d || !d.points || !d.points.roof1 || !d.points.roof2) return null;
+  let a = 0, b = 0;
+  steps(d, (i, h) => { a += energy(d, "roof1", i, h); b += energy(d, "roof2", i, h); });
+  const solar = dayTotal(d, "solar")[0], sum = a + b;
+  if (solar != null && sum > 0.05) { a *= solar / sum; b *= solar / sum; }
+  return [a, b];
+}
+function figuresFor(mode) {
+  const numbers = (daily && daily.numbers) || {};
+  const blank = { mode, cost: null, bought: null, sold: null, solar: null, roofs: null, self: null, days: null };
+  if (!daily) return blank;
+  if (mode === "day") {
+    const d = days.loaded[londonDate()];
+    if (!d) return blank;
+    const t = d.totals || {}, money = dayMoney(d), used = usedKwh(t), bought = num(t.bought);
+    return { mode, cost: money ? money.spent : null, bought, sold: num(t.sold), solar: dayTotal(d, "solar")[0], roofs: roofKwh(d),
+             self: used != null && bought != null ? Math.max(0, used - bought) : null, days: 1 };
+  }
+  const named = mode === "week" ? numbers.week : mode === "month" ? numbers.this_month : numbers.last_12_months;
+  if (named && (mode !== "week" || named.cost_gbp != null || DEMO)) {
+    return { mode, cost: num(named.cost_gbp), bought: num(named.bought_kwh), sold: num(named.sold_kwh), solar: num(named.solar_kwh),
+             roofs: num(named.roof1_kwh) != null ? [named.roof1_kwh, named.roof2_kwh] : null,
+             self: num(named.used_kwh) != null && num(named.bought_kwh) != null ? Math.max(0, named.used_kwh - named.bought_kwh) : null,
+             days: num(named.days) };
+  }
+  const current = nowKeys(), keyName = mode === "year" ? "year" : mode;
+  const sel = { mode: keyName, key: current[keyName], current: current[keyName] };
+  const answer = periodAnswer(sel);
+  if (!answer) return blank;
+  const rows = barRows(sel, answer).whole;
+  if (!rows.length) return blank;
+  const add = k => rows.reduce((s, r) => s + (r[k] || 0), 0);
+  const used = add("used"), bought = add("bought");
+  return { mode, cost: null, bought, sold: add("sold"), solar: add("solar"), roofs: null, self: Math.max(0, used - bought), days: rows.length };
+}
+function kwhHtml(v) { return v == null || isNaN(v) ? "–" : `${kwh(v)}<small>kWh</small>`; }
+function moneyHtml(v) { return v == null || isNaN(v) ? "–" : gbp(v); }
+function ensurePeriod(mode) {
+  if (DEMO || mode === "day") return;
+  const current = nowKeys(), keyName = mode === "year" ? "year" : mode;
+  const sel = { mode: keyName, key: current[keyName], current: current[keyName] };
+  if (!periodAnswer(sel)) loadPeriod(sel);
+}
+function chargeSlots() {
+  const plan = daily && daily.best_times && daily.best_times.battery_plan;
+  const windows = (daily && daily.room && daily.room.charge_windows && daily.room.charge_windows.length) ? daily.room.charge_windows : SAMPLE_WINDOWS;
+  return windows.map(([a, b]) => {
+    const found = plan && Array.isArray(plan.slots) ? plan.slots.find(s => clockMinutes(s.from) === a) : null;
+    const level = found && found.level_pct != null ? found.level_pct : plan && plan.level_pct != null ? plan.level_pct : null;
+    const sunday = found && found.sunday_level_pct != null ? found.sunday_level_pct : null;
+    return { a, b, from: minuteClock(a), to: minuteClock(b), level_pct: level, sunday_level_pct: sunday };
+  });
+}
+function levelFor(slot, weekday) {
+  if (!slot) return null;
+  if (weekday === 6 && slot.sunday_level_pct != null) return slot.sunday_level_pct;
+  return slot.level_pct != null ? slot.level_pct : null;
+}
+function windowStatus() {
+  const { minute, weekday } = londonNow(), slots = chargeSlots();
+  let active = null, next = null, wait = 1e9;
+  slots.forEach(s => {
+    if (minute >= s.a && minute < s.b) active = s;
+    const startIn = minute < s.a ? s.a - minute : 1440 - minute + s.a;
+    if (minute >= s.b && startIn < wait) { wait = startIn; next = s; }
+    if (minute < s.a && s.a - minute < wait) { wait = s.a - minute; next = s; }
+  });
+  return { minute, weekday, slots, active, next, wait };
+}
+function overviewHtml() {
+  if (!daily) return `<p class="muted" style="padding:16px">Loading the latest figures…</p>`;
+  const alerts = shownAlerts();
+  const top = alerts[0];
+  const hide = top && top.tariffId ? `<button type="button" class="link-btn" data-hide="${esc(top.id)}" data-tariff-id="${esc(top.tariffId)}" data-tariff-date="${esc(top.tariffChecked || "")}">Hide</button>` : "";
+  const alert = top ? `<div class="ov-alert" role="status"><span>${esc(top.text)}</span>${hide}${alerts.length > 1 ? `<span class="more">+${alerts.length - 1}</span>` : ""}</div>` : "";
+  const r = live.reading, f = r ? flows(r) : null, house = f ? f.house : null;
+  const tone = house == null ? "" : house >= HOUSE_LIMIT_KW ? "hot" : house >= 3 ? "warm" : "";
+  const spare = house == null ? "Waiting for a reading" : Math.abs(house - HOUSE_LIMIT_KW) < 0.05 ? "At the 5 kW limit" : house < HOUSE_LIMIT_KW ? `${kw(HOUSE_LIMIT_KW - house)} kW spare` : `${kw(house - HOUSE_LIMIT_KW)} kW over`;
+  const fill = house == null ? 0 : Math.max(house > 0.02 ? 3 : 0, Math.min(100, house / 6 * 100));
+  let flow = `<p class="muted">Waiting for a reading.</p>`;
+  if (f) {
+    const pct = f.pct == null ? null : Math.round(Math.max(0, Math.min(100, f.pct)));
+    const grid = f.buy >= ON_KW ? ["Buying from the grid", f.buy] : f.sell >= ON_KW ? ["Selling to the grid", f.sell] : ["Grid", 0];
+    const bat = f.give >= ON_KW ? ["Battery giving", f.give] : f.charge >= ON_KW ? ["Battery charging", f.charge] : null;
+    const level = pct == null ? "–" : `${pct}<small>%</small>`;
+    const labels = sceneLabel(-222, -170, false, "House", watts(f.house)) + sceneLabel(222, -170, true, "Solar", watts(f.solar)) +
+      sceneLabel(-222, 202, false, grid[0], watts(grid[1])) + sceneLabel(222, 202, true, bat ? bat[0] : "Battery", bat ? watts(bat[1]) : level);
+    flow = `<div class="iso-scene"><svg viewBox="${SCENE.x} ${SCENE.y} ${SCENE.w} ${SCENE.h}" role="img" aria-label="Where the power is going now">${sceneSvg(f)}</svg>${labels}</div>`;
+  }
+  const mode = periodChoice(STATS_KEY, "day"), pack = figuresFor(mode);
+  const roofs = pack.roofs ? `Roof 1 ${kwh(pack.roofs[0])} · Roof 2 ${kwh(pack.roofs[1])}` : "Roofs –";
+  const seg = ["day", "week", "month", "year"].map(k => `<button type="button" data-stats="${k}" aria-pressed="${k === mode}">${k[0].toUpperCase() + k.slice(1)}</button>`).join("");
+  const stat = (k, v, sub) => `<div class="stat"><span class="k">${k}</span><b>${v}</b>${sub ? `<span class="s">${esc(sub)}</span>` : ""}</div>`;
+  const wins = windowStatus();
+  const head = wins.active ? `This window ends in ${duration(wins.active.b - wins.minute)}` : wins.next ? `Next ${wins.next.from} · in ${duration(wins.wait)}` : "No off-peak window";
+  const slots = wins.slots.map(s => {
+    const on = !!(wins.active && wins.active.a === s.a);
+    const offset = on || wins.minute < s.a ? 0 : 1;
+    const level = levelFor(s, (wins.weekday + offset) % 7);
+    const sun = s.sunday_level_pct == null ? "–" : Math.round(s.sunday_level_pct) + "%";
+    return `<div class="win-slot${on ? " now" : ""}"><b>${esc(s.from)}–${esc(s.to)}</b><span>stops at ${level == null ? "–" : Math.round(level) + "%"}</span><small>Sun ${sun}</small></div>`;
+  }).join("");
+  return `<div class="ov${alert ? "" : " no-alert"}">${alert}
+    <div class="ov-mid"><div class="ov-flow">${flow}</div>
+      <div class="ov-gauge ${tone}"><div class="gauge-k">House power</div><div class="gauge-w">${house == null ? "–" : watts(house)}</div>
+        <div class="gauge-bar" role="img" aria-label="${esc(`House ${house == null ? "unknown" : kw(house) + " kW"}. ${spare}. Green under 3 kW, amber from 3 to 5, red over 5.`)}"><span style="width:${fill.toFixed(1)}%"></span><i class="gauge-mark" style="left:50%"></i><i class="gauge-mark" style="left:83.33%"></i></div>
+        <div class="gauge-spare">${esc(spare)}</div><div class="gauge-key"><span>Under 3 kW</span><span>3 to 5</span><span>Over 5 kW</span></div></div></div>
+    <div class="ov-stats"><div class="seg" role="group" aria-label="Stats period">${seg}</div>
+      <div class="stat-grid">${stat("Cost", moneyHtml(pack.cost), mode === "year" ? "12 months" : "")}${stat("Import", kwhHtml(pack.bought), "")}${stat("Export", kwhHtml(pack.sold), "")}${stat("Solar", kwhHtml(pack.solar), roofs)}${stat("Self-use", kwhHtml(pack.self), "")}</div></div>
+    <div class="ov-wins"><div class="wins-head"><b>Off-peak</b><span>${esc(head)}</span></div><div class="wins-row">${slots}</div></div></div>`;
+}
+function unitPence(p) {
+  if (p == null || p === "") return null;
+  const list = (Array.isArray(p) ? p : [p]).map(Number);
+  if (!list.length || list.some(n => !isFinite(n))) return null;
+  return list.reduce((s, n) => s + n, 0) / list.length;
+}
+function rateCost(fig, rates) {
+  const unit = rates ? unitPence(rates.import_p) : null;
+  if (!fig || fig.bought == null || unit == null || !fig.days) return null;
+  return fig.bought * unit / 100 + fig.days * (Number(rates.standing_p_day) || 0) / 100 - (fig.sold || 0) * (Number(rates.export_p) || 0) / 100;
+}
+function tariffStamp(file) {
+  if (!file || !/^\d{4}-\d{2}-\d{2}$/.test(file.updated || "")) return { text: "Last updated –", old: false };
+  const days = (Date.now() - Date.parse(file.updated + "T00:00:00Z")) / 86400000;
+  return { text: `Last updated ${shortDate(file.updated, false)}`, old: days > 35 };
+}
+function rateWords(p) {
+  if (p == null || p === "") return "–";
+  return (Array.isArray(p) ? p : [p]).map(pence).join(" / ");
+}
+function localPeriods() {
+  const saved = store("periods-local");
+  return saved && Array.isArray(saved.periods) ? saved : null;
+}
+function periodList() {
+  const file = periodsFile;
+  if (!file || (file.example && !DEMO)) return [];
+  return (file.periods || []).filter(p => p && /^\d{4}-\d{2}-\d{2}$/.test(p.start || "") && p.label).slice().sort((a, b) => a.start < b.start ? -1 : 1);
+}
+function selectedPeriod() {
+  const list = periodList().filter(p => p.start <= londonDate());
+  const saved = store(PERIOD_PICK_KEY);
+  return list.find(p => p.id === saved) || list[list.length - 1] || null;
+}
+function monthsFor(start) {
+  const startMonth = (start || "").slice(0, 7), today = londonDate().slice(0, 7);
+  const published = (daily && daily.numbers && daily.numbers.by_month) || [];
+  if (published.length) return published.filter(m => m.month >= startMonth && m.month <= today);
+  const out = [];
+  for (let y = +startMonth.slice(0, 4); y <= +today.slice(0, 4); y++) {
+    const answer = keptYear(String(y));
+    if (!answer || !answer.months) continue;
+    for (let i = 0; i < 12; i++) {
+      const month = `${y}-${String(i + 1).padStart(2, "0")}`;
+      if (month < startMonth || month > today) continue;
+      const row = balanceRow(answer.months, i, month + "-01");
+      if (!row) continue;
+      out.push({ month, days: null, solar_kwh: row.solar, bought_kwh: row.bought, sold_kwh: row.sold, cost_gbp: null });
+    }
+  }
+  return out;
+}
+function usageFor(period) {
+  const blank = { cost: null, bought: null, sold: null, solar: null, days: null, months: [], partial: false };
+  if (!period) return blank;
+  const months = monthsFor(period.start);
+  if (!months.length) return blank;
+  const add = k => months.reduce((s, m) => m[k] == null ? s : s + Number(m[k]), 0);
+  const days = months.some(m => m.days != null) ? add("days") : null;
+  const cost = months.every(m => m.cost_gbp != null) ? add("cost_gbp") : null;
+  return { cost, bought: add("bought_kwh"), sold: add("sold_kwh"), solar: add("solar_kwh"), days, months, partial: period.start.slice(8) !== "01" };
+}
+function dismissedTariffs() {
+  const saved = store(DISMISS_TARIFFS_KEY);
+  return saved && typeof saved === "object" ? saved : {};
+}
+function tariffSavingAlerts() {
+  const file = tariffList, fig = usageFor(selectedPeriod()), gone = dismissedTariffs();
+  if (!file || !file.offers || fig.cost == null) return [];
+  return file.offers.flatMap(o => {
+    const cost = rateCost(fig, o);
+    if (cost == null || fig.cost - cost < 1) return [];
+    if (gone[o.id] && gone[o.id] >= (o.checked || "")) return [];
+    const save = fig.cost - cost;
+    return [{ id: "tariff-save-" + o.id, tariffId: o.id, tariffChecked: o.checked || "", level: "money",
+      text: `${file.example ? "Sample: " : ""}${o.supplier} ${o.name} looks about ${gbp(save)} less over this period.`,
+      details: file.example ? "Sample prices, not a real offer. Hide keeps this one hidden." : "Hide keeps this one hidden.",
+      since: o.checked || "" }];
+  });
+}
+function tariffsHtml() {
+  const file = tariffList, period = selectedPeriod(), fig = usageFor(period);
+  const choices = periodList();
+  const pick = choices.length ? `<label class="set-help">Period <select class="set-select" id="period-pick" aria-label="Which period">${choices.map(p =>
+    `<option value="${esc(p.id)}"${period && p.id === period.id ? " selected" : ""}>${esc(p.label)} · from ${esc(shortDate(p.start, false))}</option>`).join("")}</select></label>` : `<p>No period yet. Add a start date in Settings.</p>`;
+  if (!file) return `<div class="tariff-page"><div class="panel"><h2>This period</h2>${pick}<p class="muted">Reading the tariff list…</p></div></div>`;
+  const cap = file.price_cap || {}, stamp = tariffStamp(file), capNow = rateCost(fig, cap);
+  const diff = fig.cost != null && capNow != null ? capNow - fig.cost : null;
+  const versus = diff == null ? "" : diff >= 0.5 ? `${gbp(diff)} less than the price cap` : diff <= -0.5 ? `${gbp(-diff)} more than the price cap` : "About the same as the price cap";
+  const perDay = fig.cost != null && fig.days ? gbp(fig.cost / fig.days) : "–";
+  const shown = fig.months.slice(-6);
+  const earlier = fig.months.length - shown.length;
+  const months = shown.map(m => `<div class="month-line"><span>${esc(monthName(m.month, true))}</span><span>in ${kwh(m.bought_kwh)}</span><span>out ${kwh(m.sold_kwh)}</span><span>solar ${kwh(m.solar_kwh)}</span><span>${m.cost_gbp == null ? "–" : gbp(m.cost_gbp)}</span></div>`).join("");
+  const offers = (file.offers || []).map(o => {
+    const cost = rateCost(fig, o);
+    const save = fig.cost != null && cost != null ? fig.cost - cost : null;
+    const year = save != null && fig.days >= 7 ? save * 365 / fig.days : null;
+    const hide = save != null && save >= 1 && !(dismissedTariffs()[o.id] >= (o.checked || "")) ? `<button type="button" class="link-btn" data-hide="${esc(o.id)}" data-tariff-id="${esc(o.id)}" data-tariff-date="${esc(o.checked || "")}">Hide</button>` : "";
+    return `<div class="offer"><div class="who"><b>${esc(o.supplier || "")}</b> ${esc(o.name || "")}
+        <div class="rates">${rateWords(o.import_p)} import · ${o.standing_p_day == null ? "–" : pence(o.standing_p_day)} a day · export ${o.export_p == null ? "–" : pence(o.export_p)}</div>
+        <div class="fine">${o.url ? `<a href="${esc(o.url)}" target="_blank" rel="noopener">Open</a>` : ""}${hide}${o.checked ? ` Checked ${esc(shortDate(o.checked, false))}` : ""}</div></div>
+      <div class="save">${cost == null ? "–" : gbp(cost)}${save == null ? "" : `<br>${save >= 0.5 ? "saves " + gbp(save) : "costs " + gbp(-save) + " more"}`}${year != null ? `<br>${gbp(Math.abs(year))} a year` : ""}</div></div>`;
+  }).join("");
+  const first = period ? monthName(period.start.slice(0, 7), true) : "";
+  return `<div class="tariff-page"><div class="panel"><h2>This period</h2>${pick}
+      ${file.example ? `<p class="sample-flag">Sample tariffs. These prices are made up, not real quotes.</p>` : ""}
+      <div class="compare"><article><div class="k">Paid since it started</div><b>${moneyHtml(fig.cost)}</b><small>${period ? esc(period.label) : ""}${fig.bought == null ? "" : ` · ${kwh(fig.bought)} kWh imported`}</small></article>
+        <article><div class="k">${esc(cap.name || "Price cap")}</div><b>${moneyHtml(capNow)}</b><small>${cap.import_p == null ? "No cap rate yet" : `${pence(cap.import_p)} a unit, ${pence(cap.standing_p_day || 0)} a day`}</small></article></div>
+      <div class="stat-grid">${[["Import", kwhHtml(fig.bought)], ["Export", kwhHtml(fig.sold)], ["Solar", kwhHtml(fig.solar)], ["A day", fig.days ? perDay : "–"]].map(([k, v]) => `<div class="stat"><span class="k">${k}</span><b>${v}</b></div>`).join("")}</div>
+      ${period && fig.partial ? `<p class="fine">The first month is the whole of ${esc(first)}. Figures are kept by month, so days before ${esc(shortDate(period.start, false))} are included.</p>` : ""}
+      ${earlier > 0 ? `<p class="fine">${earlier} earlier month${earlier === 1 ? "" : "s"} ${earlier === 1 ? "is" : "are"} in the total.</p>` : ""}
+      <div class="months">${months || `<p class="fine">No monthly figures for this period yet.</p>`}</div>
+      <p class="fine">${esc(versus)}${versus ? ". " : ""}The other tariff is this period's import at its unit rate, plus the standing charge, minus export.</p></div>
+    <div class="panel"><div class="wins-head"><h2>Other UK tariffs</h2><span>${esc(stamp.text)}</span></div>
+      ${file.example ? `<p class="sample-flag">Sample list. The real tariff list is not connected yet.</p>` : ""}
+      ${stamp.old ? `<p class="old-flag">This list is over 35 days old.</p>` : ""}
+      <div class="offers">${offers || `<p class="muted">No other tariffs in the list.</p>`}</div>
+      <p class="fine">Compared with this period's own import, export and days. The year figure scales that to 365 days. More than one unit rate uses their average.</p></div></div>`;
+}
+function devicesHtml() {
+  const file = devicesFile;
+  if (!file) return `<div class="devices-page"><div class="panel"><h2>Smart plugs</h2><p class="muted">Reading the plugs…</p></div></div>`;
+  const list = (file.devices || []).filter(d => d && d.id);
+  if (!list.length) return `<div class="devices-page"><div class="panel"><h2>Smart plugs</h2><p class="device-empty">No smart plugs connected yet</p></div></div>`;
+  const now = tariffNow(daily && daily.prices);
+  const ranked = list.slice().sort((a, b) => (num(b.kwh_today) || 0) - (num(a.kwh_today) || 0));
+  const rows = ranked.map((d, i) => {
+    const cost = now && num(d.kwh_today) != null ? d.kwh_today * now.p / 100 : null;
+    return `<div class="device-row"><span class="rank">${i + 1}</span><b>${esc(d.name || d.id)}</b><span>${d.watts == null ? "–" : Math.round(d.watts) + " W"}</span><span>${kwh(d.kwh_today)} kWh</span><span>${cost == null ? "–" : gbp(cost)}</span></div>`;
+  }).join("");
+  return `<div class="devices-page"><div class="panel"><h2>Smart plugs</h2>${file.example ? `<p class="sample-flag">Sample plugs. None of these are in the house.</p>` : ""}
+    <div class="device-row"><span></span><span class="k">Plug</span><span class="k">Now</span><span class="k">Today</span><span class="k">Cost</span></div>
+    ${rows}<p class="fine">Ranked by today's kWh. Cost is today's kWh at the rate in force now.</p></div></div>`;
+}
+function alertsListHtml() {
+  const alerts = shownAlerts();
+  if (!daily) return "";
+  if (!alerts.length) return `<div class="calm"><span class="badge" style="--s: var(--good)">${icon("check")}</span><div><p class="alert-title">Nothing needs you</p></div></div>`;
+  return alerts.slice(0, 4).map(a => {
+    const [ic, colour, kind] = KINDS[a.level] || KINDS.reminder;
+    return `<div class="alert"><span class="badge${colour ? (a.level === "watch" ? " dark-icon" : "") : " plain"}" style="--s: ${colour || "var(--well)"}">${icon(ic)}</span>
+      <div><div class="alert-top"><p class="alert-kind">${kind}</p><button class="link-btn" data-hide="${esc(a.id)}"${a.tariffId ? ` data-tariff-id="${esc(a.tariffId)}" data-tariff-date="${esc(a.tariffChecked || "")}"` : ""} type="button">Hide</button></div>
+        <p class="alert-title">${esc(a.text)}</p>${a.details ? `<p class="alert-details">${esc(a.details)}</p>` : ""}</div></div>`;
+  }).join("") + (alerts.length > 4 ? `<p class="fine">And ${alerts.length - 4} more.</p>` : "");
+}
+function alertsPageHtml() {
+  return `<div class="alerts-page"><div class="panel"><h2>Recent alerts</h2><div id="alerts-list">${alertsListHtml()}</div>
+      <p class="fine">${daily ? `Updated ${esc(when(daily.made))}.` : ""}</p><p id="alerts-status">Alert sign-up appears here once this device has its key.</p></div>
+    <div class="panel"><h2>Settings</h2><div id="alerts-settings"></div></div></div>`;
+}
+function paintBanner() {
+  const banner = document.getElementById("banner");
+  if (!banner) return;
+  const age = daily && daily.made ? (Date.now() - new Date(String(daily.made).replace(" ", "T"))) / 3600000 : 0;
+  banner.innerHTML = DEMO ? `<div class="demo-banner" role="status">Sample figures. Not this house.</div>`
+    : daily && (dailyStale || age > 30) ? `<div class="stale-banner" role="status">${icon("alert")}<span>The daily figures haven't updated since ${esc(when(daily.made))}.</span></div>` : "";
+}
+function paintPager() {
+  const nav = document.getElementById("pager");
+  if (!nav || nav.hidden) return;
+  const current = pageId();
+  nav.innerHTML = PAGES.map(([id, name]) => `<button type="button" data-page-jump="${id}" aria-current="${id === current ? "true" : "false"}"><i class="dot" aria-hidden="true"></i>${esc(name)}</button>`).join("");
+  nav.querySelectorAll("button").forEach(b => b.onclick = () => showPage(b.dataset.pageJump, true));
+}
+function showPage(id, smooth) {
+  if (!PAGES.some(([p]) => p === id)) id = "overview";
+  store(PAGE_KEY, id);
+  const pages = document.getElementById("pages"), el = document.querySelector(`.page[data-page="${id}"]`);
+  if (pages && el) {
+    if (smooth) pages.scrollTo({ left: el.offsetLeft, behavior: "smooth" });
+    else pages.scrollLeft = el.offsetLeft;
+  }
+  paintPager();
+  if (id === "history") requestAnimationFrame(() => drawEnergy());
+}
+function wirePager() {
+  if (pagerReady) return;
+  const pages = document.getElementById("pages");
+  if (!pages) return;
+  pagerReady = true;
+  pages.addEventListener("scrollend", () => {
+    const i = Math.round(pages.scrollLeft / Math.max(1, pages.clientWidth));
+    const id = (PAGES[Math.max(0, Math.min(PAGES.length - 1, i))] || PAGES[0])[0];
+    store(PAGE_KEY, id);
+    paintPager();
+  });
+  let drag = null;
+  pages.addEventListener("pointerdown", e => {
+    if (e.pointerType === "touch" || e.target.closest("button, a, input, select, textarea, #energy-chart")) return;
+    drag = { x: e.clientX, left: pages.scrollLeft, id: e.pointerId };
+    pages.setPointerCapture(e.pointerId);
+  });
+  pages.addEventListener("pointermove", e => { if (drag && drag.id === e.pointerId) pages.scrollLeft = drag.left - (e.clientX - drag.x); });
+  pages.addEventListener("pointerup", e => {
+    if (!drag || drag.id !== e.pointerId) return;
+    const dx = e.clientX - drag.x;
+    drag = null;
+    const w = Math.max(1, pages.clientWidth);
+    let i = Math.round(pages.scrollLeft / w);
+    if (Math.abs(dx) > 50) i = dx < 0 ? Math.min(PAGES.length - 1, Math.ceil(pages.scrollLeft / w - 0.2)) : Math.max(0, Math.floor(pages.scrollLeft / w + 0.2));
+    showPage(PAGES[Math.max(0, Math.min(PAGES.length - 1, i))][0], true);
+  });
+  document.addEventListener("keydown", e => {
+    if (e.altKey || e.metaKey || e.ctrlKey || e.target.closest("input, textarea, select, #energy-chart")) return;
+    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+    const i = PAGES.findIndex(([id]) => id === pageId());
+    const next = PAGES[i + (e.key === "ArrowRight" ? 1 : -1)];
+    if (!next) return;
+    e.preventDefault();
+    showPage(next[0], true);
+  });
+}
+function utf8b64(text) {
+  const bytes = new TextEncoder().encode(text);
+  let bin = "";
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin);
+}
+async function readHouseFile(path) {
+  const source = store(SOURCE_KEY);
+  return source && source.key ? github(source, path, { headers: { Accept: "application/vnd.github.raw+json" } }) : fetch(path, { cache: "no-store" });
+}
+async function putJson(source, path, obj, message) {
+  const existing = await github(source, path);
+  if (existing.status === 403) { const err = new Error("This key cannot change the files."); err.writable = false; throw err; }
+  const sha = existing.ok ? (await existing.json()).sha : undefined;
+  const response = await github(source, path, { method: "PUT", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message, content: utf8b64(JSON.stringify(obj, null, 1) + "\n"), sha }) });
+  if (response.status === 403 || response.status === 404) { const err = new Error("This key cannot change the files."); err.writable = false; throw err; }
+  if (!response.ok) throw new Error("GitHub said " + response.status);
+}
+function periodSlug(label, start) {
+  const stem = (label || "period").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "period";
+  return stem + "-" + start;
+}
+async function savePeriods(box) {
+  const status = box.querySelector("#period-status");
+  const rows = [...box.querySelectorAll("#period-rows .period-row")];
+  const periods = [];
+  for (const row of rows) {
+    const start = row.querySelector("[data-period-start]").value;
+    const label = row.querySelector("[data-period-label]").value.trim();
+    if (!start && !label) continue;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(start) || !label) { status.textContent = "Each period needs a date and a short name."; return; }
+    let id = row.dataset.id;
+    if (!id || periods.some(p => p.id === id)) id = periodSlug(label, start);
+    periods.push({ id, start, label });
+  }
+  periods.sort((a, b) => a.start < b.start ? -1 : 1);
+  const body = { example: !!DEMO, updated: londonDate(), periods };
+  periodsFile = body;
+  store("periods-local", body);
+  paintTariffs();
+  if (DEMO) { status.textContent = "Saved on this device. Sample figures are not written to the house's files."; return; }
+  const source = store(SOURCE_KEY);
+  if (!source || !source.key) { status.textContent = "Saved on this device. There is no key to write it to the house's files."; return; }
+  status.textContent = "Saving…";
+  try {
+    await putJson(source, "periods.json", body, "Update energy periods");
+    status.textContent = "Saved to the house's figures.";
+  } catch (e) {
+    status.textContent = e.writable === false ? "Saved on this device. This key cannot change the files." : "Saved on this device. " + (e.message || "The save failed.");
+  }
+}
+async function dismissTariff(id, date) {
+  const all = dismissedTariffs();
+  all[id] = date || londonDate();
+  store(DISMISS_TARIFFS_KEY, all);
+  paintTariffs();
+  const list = document.getElementById("alerts-list");
+  if (list) list.innerHTML = alertsListHtml();
+  const overview = document.getElementById("page-overview");
+  if (overview && !document.getElementById("setup")) overview.innerHTML = overviewHtml();
+  wire();
+  if (DEMO) return;
+  const source = store(SOURCE_KEY);
+  if (!source || !source.key) return;
+  const body = { dismissed: Object.keys(all).sort().map(key => ({ id: key, date: all[key] })) };
+  try { await putJson(source, "dismissed-tariffs.json", body, "Dismiss a tariff saving"); } catch (e) {}
+}
+async function loadTariffList() {
+  // The only tariff-list loader. It returns the sample until the energy spreadsheet
+  // (the sheet id in ENERGY_SHEET_ID) is wired in. Replace this body, not the page.
+  tariffList = SAMPLE_TARIFF_LIST;
+}
+async function loadPeriods() {
+  if (DEMO) { periodsFile = localPeriods() || DEMO_PERIODS; return; }
+  const local = localPeriods();
+  try {
+    const response = await readHouseFile("periods.json");
+    if (response.status === 404) periodsFile = { periods: [] };
+    else if (!response.ok) throw new Error("the periods answered " + response.status);
+    else periodsFile = await response.json();
+  } catch (e) { periodsFile = local || { periods: [] }; }
+  if (local && local.updated && (!periodsFile.updated || local.updated > periodsFile.updated)) periodsFile = local;
+}
+async function loadDevices() {
+  if (DEMO) { devicesFile = SAMPLE_DEVICES; return; }
+  try {
+    const response = await readHouseFile("devices.json");
+    if (response.status === 404) devicesFile = { devices: [] };
+    else if (!response.ok) throw new Error("the plugs answered " + response.status);
+    else devicesFile = await response.json();
+    if (devicesFile.example) devicesFile = { devices: [] };
+  } catch (e) { devicesFile = { devices: [] }; }
+}
+async function loadDismissed() {
+  if (DEMO) return;
+  try {
+    const response = await readHouseFile("dismissed-tariffs.json");
+    if (!response.ok) return;
+    const file = await response.json();
+    const all = dismissedTariffs();
+    (file.dismissed || []).forEach(row => {
+      if (!row || !row.id || !/^\d{4}-\d{2}-\d{2}$/.test(row.date || "")) return;
+      if (!all[row.id] || row.date > all[row.id]) all[row.id] = row.date;
+    });
+    store(DISMISS_TARIFFS_KEY, all);
+  } catch (e) {}
+}
+async function ensureUsageMonths() {
+  if (DEMO || !daily) return;
+  if (daily.numbers && Array.isArray(daily.numbers.by_month) && daily.numbers.by_month.length) return;
+  const start = (selectedPeriod() || {}).start || FIRST_DAY;
+  const years = [];
+  for (let y = +start.slice(0, 4); y <= +londonDate().slice(0, 4); y++) years.push(String(y));
+  await Promise.all(years.map(y => getYear(y).catch(() => null)));
+}
+async function loadHouseFiles() {
+  await Promise.all([loadTariffList(), loadPeriods(), loadDevices(), loadDismissed()]);
+  if (!DEMO) await ensureUsageMonths().catch(() => {});
+  paintTariffs();
+  paintDevices();
+  const list = document.getElementById("alerts-list");
+  if (list) list.innerHTML = alertsListHtml();
+  const overview = document.getElementById("page-overview");
+  if (overview && !document.getElementById("setup")) overview.innerHTML = overviewHtml();
+  wire();
+}
+function paintTariffs() {
+  const el = document.getElementById("page-tariffs");
+  if (!el || document.getElementById("setup")) return;
+  el.innerHTML = tariffsHtml();
+  wire();
+}
+function paintDevices() {
+  const el = document.getElementById("page-devices");
+  if (!el || document.getElementById("setup")) return;
+  el.innerHTML = devicesHtml();
+}
+
 function setStatus() {
-  const el = document.getElementById("status");
-  const dateLine = new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: ZONE });
-  el.textContent = DEMO ? `Sample figures · ${dateLine}` : dateLine;
   const button = document.getElementById("keep-awake");
   if (!button) return;
   if (wakeSupported() && daily) {
@@ -2657,74 +3331,66 @@ function setStatus() {
   } else button.hidden = true;
 }
 
-function cards() {
-  return { now: nowCard, energy: energyCard, best: () => daily ? bestTimesCard(daily.best_times) : "", start: () => daily ? startCard(daily.prices) : "",
-           money: () => daily ? moneyCard(daily.usage) : "",
-           appliances: () => daily ? appliancesCard(daily.appliances) : "",
-           alerts: () => daily ? alertsCard(daily.alerts || []) : "",
-           numbers: () => daily ? numbersCard() : "", tariff: () => daily ? tariffCard(daily.tariff) : "", shower: () => daily ? showerCard(daily.shower) : "" };
-}
-
 function render() {
-  if (document.getElementById("setup")) return;              // a key is being pasted: leave the page alone
-  const hidden = store(CARDS_KEY) || {}, html = cards();
-  const age = daily ? (Date.now() - new Date(daily.made.replace(" ", "T"))) / 3600000 : 0;
-  const warn = daily && (dailyStale || age > 30) ? `<div class="banner">${icon("alert")}<span>The daily figures haven't updated since ${esc(when(daily.made))}. The daily update may have stopped, or there's no internet.</span></div>` : "";
-  const main = document.getElementById("main");
-  document.getElementById("banner").innerHTML = DEMO
-    ? `<div class="demo-banner" role="status"><span>Sample figures.</span> Not this house — these numbers are made up, so you can judge the layout. Nothing here is a reading from the inverter.</div>`
-    : warn;
-  main.innerHTML = CARDS.filter(([id]) => !hidden[id]).map(([id]) => html[id]()).join("");
-  main.classList.toggle("live", !!document.getElementById("card-now") && !!document.getElementById("card-energy"));
-  renderHero();
+  if (document.getElementById("setup")) return;
+  document.querySelectorAll(".page").forEach(p => { p.hidden = false; p.classList.remove("setup-mode"); });
+  const pager = document.getElementById("pager");
+  if (pager) pager.hidden = false;
+  paintBanner();
+  const overview = document.getElementById("page-overview");
+  if (overview) overview.innerHTML = overviewHtml();
+  const tariffs = document.getElementById("page-tariffs");
+  if (tariffs) tariffs.innerHTML = tariffsHtml();
+  const devices = document.getElementById("page-devices");
+  if (devices) devices.innerHTML = devicesHtml();
+  const history = document.getElementById("page-history");
+  if (history) history.innerHTML = energyCard() || `<p class="muted" style="padding:16px">No chart yet.</p>`;
+  const alerts = document.getElementById("page-alerts");
+  if (alerts) alerts.innerHTML = alertsPageHtml();
+  openSettings();
   setStatus();
-  renderFooter();
   wire();
-  drawEnergy();
+  wirePager();
+  showPage(pageId(), false);
+  const source = store(SOURCE_KEY);
+  if (source && !DEMO) showAlertsStatus(source);
+  requestAnimationFrame(() => drawEnergy());
 }
 
 function refreshCards(...ids) {
-  // redraw some cards in place; if one appears or goes, redraw the page
   if (document.getElementById("setup") || !daily) return;
-  renderHero();
-  const hidden = store(CARDS_KEY) || {}, html = cards();
-  for (const id of ids) {
-    if (hidden[id]) continue;
-    const el = document.getElementById("card-" + id), fresh = html[id]();
-    if (!el !== !fresh) { render(); return; }       // a card appeared or went: lay the page out again
-    if (el) el.outerHTML = fresh;
+  const touchOverview = ids.some(id => id === "now" || id === "numbers" || id === "start" || id === "alerts" || id === "energy");
+  if (touchOverview) {
+    const overview = document.getElementById("page-overview");
+    if (overview) overview.innerHTML = overviewHtml();
+  }
+  if (ids.includes("alerts")) {
+    const list = document.getElementById("alerts-list");
+    if (list) list.innerHTML = alertsListHtml();
+  }
+  if (ids.includes("energy")) {
+    const history = document.getElementById("page-history");
+    if (history) history.innerHTML = energyCard() || "";
+    requestAnimationFrame(() => drawEnergy());
   }
   setStatus();
   wire();
-  if (ids.includes("energy")) drawEnergy();
-}
-
-function renderFooter() {
-  const source = store(SOURCE_KEY), hidden = store(CARDS_KEY) || {};
-  document.getElementById("footer").innerHTML = (daily ? `<p>Daily figures updated ${esc(when(daily.made))}.${source ? ` From the private repository ${esc(source.repo)}.` : ""}</p>` : "") +
-    (source ? `<p><span id="alerts-status"></span></p><p><button class="link-btn" id="forget">Forget this device's key</button></p>` : "") +
-    `<details class="customise"><summary>Choose what this screen shows</summary><div class="checks">${CARDS.map(([id, name]) =>
-      `<label><input type="checkbox" id="show-${id}" data-card="${id}"${hidden[id] ? "" : " checked"}>${esc(name)}</label>`).join("")}</div></details>` +
-    (daily ? `<p>${(daily.notes || []).map(esc).join(" ")}</p><p>Sources: ${(daily.sources || []).map(esc).join(" · ")}.</p>` : "");
-  const forget = document.getElementById("forget");
-  if (forget) forget.onclick = () => { forgetSource(); location.reload(); };
-  document.querySelectorAll("[data-card]").forEach(box => box.onchange = () => {
-    const now = store(CARDS_KEY) || {};
-    if (box.checked) delete now[box.dataset.card]; else now[box.dataset.card] = Date.now();
-    store(CARDS_KEY, now);
-    render();
-    const again = document.querySelector("details.customise");
-    if (again) again.open = true;
-  });
-  if (source) showAlertsStatus(source);
 }
 
 function wire() {
   document.querySelectorAll("[data-hide]").forEach(b => b.onclick = () => {
+    if (b.dataset.tariffId) { dismissTariff(b.dataset.tariffId, b.dataset.tariffDate); return; }
     const hidden = store(HIDDEN_KEY) || {}; hidden[b.dataset.hide] = Date.now(); store(HIDDEN_KEY, hidden); refreshCards("alerts");
   });
-  document.querySelectorAll("button[data-period]").forEach(b => b.onclick = () => { store("period", b.dataset.period); refreshCards("numbers"); });
-  document.querySelectorAll("button[data-appliance-period]").forEach(b => b.onclick = () => { store("appliance-period", b.dataset.appliancePeriod); refreshCards("appliances"); });
+  document.querySelectorAll("button[data-stats]").forEach(b => b.onclick = () => {
+    store(STATS_KEY, b.dataset.stats);
+    ensurePeriod(b.dataset.stats);
+    const overview = document.getElementById("page-overview");
+    if (overview) overview.innerHTML = overviewHtml();
+    wire();
+  });
+  const pick = document.getElementById("period-pick");
+  if (pick) pick.onchange = () => { store(PERIOD_PICK_KEY, pick.value); paintTariffs(); const list = document.getElementById("alerts-list"); if (list) list.innerHTML = alertsListHtml(); const overview = document.getElementById("page-overview"); if (overview && !document.getElementById("setup")) overview.innerHTML = overviewHtml(); wire(); };
   wireEnergy();
   const awake = document.getElementById("keep-awake");
   if (awake) awake.onclick = () => keepAwake(!wakeWanted);
@@ -2949,14 +3615,13 @@ function defaultRepo() {
 }
 
 function showSetup(text, keep) {
-  document.getElementById("status").textContent = "Not set up on this device yet";
-  document.getElementById("keep-awake").hidden = true;
-  document.getElementById("footer").innerHTML = "";
-  document.getElementById("banner").innerHTML = "";
-  const hero = document.getElementById("hero");
-  if (hero) hero.innerHTML = "";
-  const main = document.getElementById("main");
-  main.classList.remove("live");
+  const banner = document.getElementById("banner");
+  if (banner) banner.innerHTML = "";
+  const pager = document.getElementById("pager");
+  if (pager) pager.hidden = true;
+  document.querySelectorAll(".page").forEach(p => { p.hidden = p.dataset.page !== "overview"; });
+  const main = document.getElementById("page-overview");
+  main.classList.add("setup-mode");
   if (keep) {
     // the key works but there's nothing to show yet
     main.innerHTML = `<section class="card wide"><div class="card-head"><h2>Set up this device</h2></div><p class="lead">Nearly there</p>
@@ -3040,29 +3705,36 @@ async function load() {
     daily = await response.json();
     dailyStale = false;
     store("last-data", daily);
-    document.getElementById("main").innerHTML = "";              // leaves a finished set-up card behind
     render();
+    loadHouseFiles();
   } catch (error) {
     if (error instanceof SetupError) { showSetup(error.message, error.keep); return; }
     const last = store("last-data");
-    if (last) { daily = last; dailyStale = true; render(); }
-    else document.getElementById("main").innerHTML = `<section class="card wide"><p class="lead">Couldn't load the figures.</p><p class="muted">${esc(error.message || error)}</p></section>`;
+    if (last) { daily = last; dailyStale = true; render(); loadHouseFiles(); }
+    else {
+      const page = document.getElementById("page-overview");
+      if (page) page.innerHTML = `<section class="card wide"><p class="lead">Couldn't load the figures.</p><p class="muted">${esc(error.message || error)}</p></section>`;
+    }
   }
 }
 function boot() {
   if (navigator.deviceMemory <= 2) document.documentElement.classList.add("modest");
   applyChrome();
   applyDrift();
-  document.getElementById("open-settings").onclick = openSettings;
-  const dialog = document.getElementById("settings");
-  document.getElementById("settings-close").onclick = () => { if (dialog.close) dialog.close(); dialog.removeAttribute("open"); };
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
   load().then(() => refreshLive(true));
   // refresh every half hour and on coming back to the app, but never while a key is being pasted
   function refresh() { if (!document.getElementById("setup-key")) load(); }
   setInterval(refresh, 30 * 60 * 1000);
   setInterval(() => refreshLive(), LIVE_EVERY);
-  setInterval(() => { applyChrome(); applyDrift(); if (daily && !document.getElementById("setup")) renderHero(); }, 60 * 1000);
+  setInterval(() => {
+    applyChrome(); applyDrift();
+    if (daily && !document.getElementById("setup")) {
+      const overview = document.getElementById("page-overview");
+      if (overview) overview.innerHTML = overviewHtml();
+      wire();
+    }
+  }, 60 * 1000);
   const retryWake = () => { if ((wakeWanted || store("keep-awake")) && !wakeLock) keepAwake(true); };
   document.addEventListener("pointerdown", retryWake, true); // a first tap, if the browser withheld the lock
   window.addEventListener("focus", retryWake);
