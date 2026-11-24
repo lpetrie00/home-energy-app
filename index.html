@@ -2,12 +2,31 @@
 <html lang="en-GB">
 <head>
 <meta charset="utf-8">
+<script>
+/* Preview frames are decided before paint, so the real page doesn't flash on a computer.
+   A computer with nothing chosen yet starts on Louis's wall tablet. A touch screen stays as it is. */
+(function () {
+  try {
+    if (navigator.deviceMemory <= 2) document.documentElement.classList.add("modest");
+    if (new URLSearchParams(location.search).has("embed")) return;
+    var saved = JSON.parse(localStorage.getItem("screen-preview") || "null");
+    var touch = (navigator.maxTouchPoints || 0) > 0 || (window.matchMedia && matchMedia("(pointer: coarse)").matches);
+    if (!saved && !touch) {
+      saved = { id: "tab-a-101-chrome-land", w: 1280, h: 752, label: "Galaxy Tab A 10.1 (2016), Louis's tablet · landscape, in Chrome · 1280 × 752" };
+      localStorage.setItem("screen-preview", JSON.stringify(saved));
+    }
+    if (saved && saved.id && saved.id !== "actual" && saved.w > 0 && saved.h > 0) {
+      document.documentElement.classList.add("preview-shell");
+    }
+  } catch (e) {}
+})();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
 <title>Home Energy</title>
 <meta name="description" content="The house's solar, battery and electricity, live: where the power is coming from right now, today's charts, the best times to use power, costs and savings.">
-<meta name="theme-color" content="#eceeeb" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0e0f0e" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#e6eeea" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#070908" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Energy">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -15,12 +34,10 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" href="icon-192.png">
 <style>
-  /* A calm instrument panel: the device's own system type, quiet cool surfaces, and colour only on
-     the energy itself (solar, house, grid, battery) plus one deep teal for controls.
-     Layout: on a phone, one column with the live flow first; on a tablet, two columns; on a wide
-     screen (a tablet on the wall), the live flow and today's charts side by side.
-     The four energy colours and the two surfaces were checked with the dataviz palette validator
-     (colour-blind separation, contrast) in light and dark: change them only after re-checking. */
+  /* A wall tablet first: large figures you can read from across the room, then the detail cards.
+     Phone and a wide computer still work. Colour stays on the energy itself (solar, house, grid,
+     battery). Those four colours were checked for colour-blind separation: leave them alone.
+     Dim night (html.dim) is a darker, quieter set for a screen that stays on. */
   :root {
     color-scheme: light;
     --page: #eceeeb;
@@ -125,6 +142,7 @@
   .status { margin-top: 3px; font-size: 14px; color: var(--ink-2); display: flex; align-items: center; gap: 7px; min-height: 20px; }
   .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
   .dot.live { background: var(--good); animation: pulse 2.4s ease-out infinite; }
+  html.modest .dot.live { animation: none; }
   .dot.late { background: var(--warning); }
   @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(12, 163, 12, 0.45); } 70%, 100% { box-shadow: 0 0 0 7px rgba(12, 163, 12, 0); } }
   .chip { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--line); background: var(--surface); border-radius: 999px;
@@ -368,9 +386,184 @@
     .grid.live #card-alerts { grid-column: 1 / span 5; grid-row: 2; }
     .grid.live #card-energy { grid-column: 6 / span 7; grid-row: 1 / span 2; }
   }
+
+  /* ---- wall tablet: the glance board, settings, dim night, preview frame ---- */
+  body {
+    background:
+      radial-gradient(920px 420px at 0% -8%, rgba(227, 155, 18, 0.10), transparent 55%),
+      radial-gradient(760px 380px at 100% 0%, rgba(15, 92, 85, 0.07), transparent 50%),
+      var(--page);
+  }
+  .top { padding-block: 14px 2px; }
+  .top-actions { display: flex; align-items: center; gap: 8px; flex: none; }
+  #hero:not(:empty) { padding-top: 8px; }
+  .demo-banner {
+    display: block; background: #f4c14d; color: #2a2108;
+    border-radius: 16px; padding: 12px 16px; font-size: 16px; font-weight: 650; line-height: 1.35;
+  }
+  .demo-banner span { font-weight: 750; }
+  .glance {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 28px; box-shadow: var(--shadow);
+    padding: 16px 16px 14px; display: grid; gap: 14px;
+  }
+  .glance-top { display: grid; gap: 14px; }
+  .glance-battery { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: center; }
+  .ring-wrap { position: relative; width: 132px; height: 132px; flex: none; }
+  .ring { width: 100%; height: 100%; display: block; }
+  .ring-track { fill: none; stroke: var(--well); stroke-width: 10; }
+  .ring-value { fill: none; stroke-width: 10; stroke-linecap: round; transform: rotate(-90deg); transform-origin: 60px 60px; }
+  .ring-copy { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; pointer-events: none; }
+  .ring-copy .pct { font-size: 40px; font-weight: 720; letter-spacing: -0.04em; line-height: 0.95; font-variant-numeric: tabular-nums; }
+  .ring-copy .pct small { font-size: 16px; font-weight: 650; letter-spacing: 0; margin-left: 1px; }
+  .ring-copy .sub { font-size: 13px; color: var(--ink-2); font-weight: 650; margin-top: 2px; }
+  .glance-side { min-width: 0; display: grid; align-content: center; gap: 4px; }
+  .glance-kicker { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .hero-clock { font-size: clamp(28px, 4vw, 40px); font-weight: 720; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; line-height: 1; }
+  .glance-flow { font-size: 18px; color: var(--ink-2); text-wrap: pretty; font-weight: 650; }
+  .metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .metric { min-width: 0; padding: 8px 10px 9px; border-radius: 16px; }
+  .metric.on { background: var(--well); }
+  .metric .k { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 650; color: var(--ink-2); }
+  .metric b { display: block; margin-top: 2px; font-size: clamp(26px, 7.2vw, 36px); font-weight: 720; letter-spacing: -0.035em; line-height: 1.05; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .metric b small { font-size: 0.42em; font-weight: 650; letter-spacing: 0; margin-left: 3px; color: var(--ink-2); }
+  .metric .s { font-size: 12.5px; color: var(--muted); margin-top: 1px; }
+  .dayline { display: grid; gap: 8px; }
+  .dayline-head { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+  .price-pill { font-weight: 750; font-size: 16px; }
+  .price-pill.cheap { color: var(--good-text); background: var(--good-wash); border-radius: 999px; padding: 6px 12px; box-shadow: inset 0 0 0 1px var(--good-line); }
+  .daybar { position: relative; height: 28px; border-radius: 9px; background: var(--well); overflow: hidden; }
+  .daybar .win { position: absolute; top: 0; bottom: 0; background: var(--c-battery); opacity: 0.85; }
+  .daybar .now-mark { position: absolute; top: -3px; bottom: -3px; width: 3px; margin-left: -1.5px; background: var(--ink); border-radius: 2px; }
+  .day-scale { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .win-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+  .win-pill { font-size: 13px; font-weight: 700; border-radius: 999px; padding: 4px 10px; background: var(--well); color: var(--ink-2); }
+  .win-pill.now { background: var(--good-wash); color: var(--good-text); box-shadow: inset 0 0 0 1px var(--good-line); }
+  .glance-alerts { display: grid; gap: 6px; }
+  .glance-alert { font-size: 16px; font-weight: 650; text-wrap: pretty; padding: 8px 12px; border-radius: 12px; background: var(--well); border-left: 5px solid var(--warning); }
+  .glance-alert.problem { color: var(--critical); border-left-color: var(--critical); }
+  .glance-alert.money { border-left-color: var(--c-solar); }
+  .glance-alert.watch { border-left-color: var(--warning); }
+  .glance-alert.reminder { border-left-color: var(--c-home); }
+  .glance-quiet { font-size: 15px; color: var(--good-text); font-weight: 700; }
+
+  @media (min-width: 720px) {
+    .glance { padding: 18px 20px 16px; }
+    .ring-wrap { width: 156px; height: 156px; }
+    .ring-copy .pct { font-size: 48px; }
+    .metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .metric b { font-size: clamp(28px, 3.6vw, 42px); }
+    .daybar { height: 34px; }
+    .strip span { height: 36px; }
+    h2 { font-size: 22px; }
+    .tile-value { font-size: 32px; }
+    .story { font-size: 22px; }
+    .big-figure { font-size: 40px; }
+  }
+  @media (min-width: 1080px) {
+    .glance-top { grid-template-columns: minmax(220px, 280px) minmax(0, 1fr); align-items: center; gap: 18px; }
+    .glance-battery { grid-template-columns: auto minmax(0, 1fr); }
+    .metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    .metric b { font-size: clamp(30px, 2.8vw, 48px); }
+    .hero-clock { font-size: 44px; }
+    .glance-flow { font-size: 20px; }
+    .tile-value { font-size: 34px; }
+    .story { font-size: 24px; }
+  }
+  /* Galaxy Tab A 10.1 (2016), landscape: 1280×800 fullscreen, about 1280×752 once
+     Android's status and navigation bars are on screen. Big figures, still one glance. */
+  @media (min-width: 1180px) and (max-height: 860px) {
+    .top { padding-block: 8px 0; }
+    h1 { font-size: 22px; }
+    .logo { width: 38px; height: 38px; }
+    #hero:not(:empty) { padding-top: 4px; }
+    .demo-banner { padding: 8px 14px; font-size: 15px; }
+    .glance { padding: 12px 18px; gap: 10px; }
+    .glance-top { grid-template-columns: minmax(320px, 360px) minmax(0, 1fr); gap: 12px; }
+    .glance-flow { white-space: nowrap; }
+    .ring-wrap { width: 128px; height: 128px; }
+    .ring-copy .pct { font-size: 42px; }
+    .hero-clock { font-size: 40px; }
+    .glance-flow { font-size: 18px; }
+    .metrics { gap: 4px 12px; }
+    .metric { padding: 2px 8px 3px; }
+    .metric b { font-size: 42px; }
+    .dayline { gap: 5px; }
+    .daybar { height: 26px; }
+    .glance-alert { padding: 5px 12px; }
+    .grid { padding-top: 8px; gap: 12px; }
+  }
+  @media (min-width: 720px) and (max-width: 900px) and (orientation: portrait) {
+    .metric b { font-size: 36px; }
+    .hero-clock { font-size: 40px; }
+    .ring-wrap { width: 132px; height: 132px; }
+    .ring-copy .pct { font-size: 42px; }
+  }
+  @media (max-width: 719px) and (orientation: portrait) {
+    .glance-battery { grid-template-columns: 112px minmax(0, 1fr); }
+    .ring-wrap { width: 112px; height: 112px; }
+    .ring-copy .pct { font-size: 34px; }
+  }
+
+  /* dim night: darker than the ordinary dark theme, for a screen left on */
+  html.dim:root {
+    --page: #050706; --surface: #0e1210; --well: #171c19; --ink: #c5cdc7; --ink-2: #93a099; --muted: #7b867f;
+    --line: rgba(255, 255, 255, 0.07); --gridline: #222824; --axis: #3a423d; --shadow: none;
+    --brand: #7eaea3; --on-brand: #07110f; --brand-text: #93c4b8;
+    --c-solar: #b88820; --c-home: #3b7cc4; --c-grid: #c45b82; --c-battery: #1e8f45;
+    --good-text: #8dcc9a; --good-soft: #173224; --cell: #202623; --note-bg: #241f12; --note-ink: #ddd0a8;
+    --good-line: rgba(141, 204, 154, 0.4); --good-wash: rgba(30, 143, 69, 0.16);
+  }
+  html.dim, html.dim body { background: #050706; color: var(--ink); }
+  html.dim .demo-banner { background: #6e5618; color: #fff4d2; }
+  html.care #board { transition: transform 1.8s ease-in-out; }
+  html.modest.care #board, html.modest .glance { transition: none; box-shadow: none; }
+  @media (prefers-reduced-motion: reduce) { html.care #board { transition: none; } }
+
+  /* settings */
+  dialog.settings {
+    width: min(680px, calc(100vw - 24px)); max-height: min(92dvh, 900px); margin: auto; padding: 0;
+    border: 1px solid var(--line); border-radius: 24px; background: var(--surface); color: var(--ink);
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+  }
+  dialog.settings::backdrop { background: rgba(6, 10, 9, 0.55); }
+  .settings-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 16px 8px 20px; position: sticky; top: 0; background: var(--surface); border-radius: 24px 24px 0 0; }
+  .settings-head h2 { font-size: 22px; }
+  #settings-body { padding: 4px 20px 22px; display: grid; gap: 18px; }
+  .set-block { display: grid; gap: 8px; }
+  .set-block h3 { margin: 0; font-size: 13px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); font-weight: 750; }
+  .set-help { font-size: 14.5px; color: var(--ink-2); }
+  .choice { display: grid; gap: 8px; }
+  .choice label, .set-check { display: flex; gap: 10px; align-items: flex-start; font-size: 16px; font-weight: 600; padding: 10px 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--well); }
+  .choice input, .set-check input { width: 20px; height: 20px; margin-top: 2px; accent-color: var(--brand-text); flex: none; }
+  .set-select, .set-num {
+    width: 100%; font: inherit; font-size: 16px; color: var(--ink); background: var(--well);
+    border: 1px solid var(--line); border-radius: 12px; padding: 12px; min-height: 48px;
+  }
+  .set-nums { display: flex; gap: 8px; align-items: center; }
+  .set-nums span { color: var(--muted); font-weight: 700; }
+  .set-num { width: 8em; }
+  dialog .checks { margin-top: 0; }
+
+  /* computer preview: the app sits in a frame of the chosen size */
+  html.preview-shell, html.preview-shell body { background: #12171c; overflow: hidden; height: 100%; }
+  html.preview-shell body > :not(#preview-root) { display: none !important; }
+  #preview-root { height: 100dvh; display: grid; grid-template-rows: auto minmax(0, 1fr); color: #e7ece9; }
+  .preview-bar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; padding: 12px 16px 8px; }
+  .preview-bar strong { font-size: 15px; }
+  .preview-bar .scale-note { color: #aeb8b4; font-size: 14px; }
+  .preview-bar select, .preview-bar input {
+    font: inherit; font-size: 14px; color: #e7ece9; background: #1d252c; border: 1px solid #334049;
+    border-radius: 10px; padding: 8px 10px; min-height: 40px;
+  }
+  .preview-stage { display: grid; place-items: center; min-height: 0; padding: 8px 16px 16px; }
+  .bezel { background: #0c1014; border-radius: 36px; padding: 16px; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45), inset 0 0 0 2px #2a333b; }
+  .bezel.phone { border-radius: 42px; padding: 12px; }
+  .bezel-fit { overflow: hidden; border-radius: 18px; background: #e6eeea; }
+  .bezel-fit iframe { border: 0; display: block; background: #e6eeea; }
 </style>
 </head>
 <body>
+<div id="board">
 <header class="top wrap">
   <div class="top-row">
     <div class="title">
@@ -380,18 +573,32 @@
         <p class="status" id="status">Loading…</p>
       </div>
     </div>
-    <button class="chip" id="keep-awake" aria-pressed="false" hidden></button>
+    <div class="top-actions">
+      <button class="chip" id="open-settings" type="button" aria-haspopup="dialog" aria-controls="settings" aria-label="Settings"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg><span class="chip-text">Settings</span></button>
+      <button class="chip" id="keep-awake" type="button" aria-pressed="false" hidden></button>
+    </div>
   </div>
 </header>
 <div class="wrap" id="banner"></div>
+<div class="wrap" id="hero"></div>
 <main class="grid wrap" id="main">
   <section class="card wide"><p class="muted">Loading the latest figures…</p></section>
 </main>
 <footer class="wrap" id="footer"></footer>
+</div>
+<dialog id="settings" class="settings" aria-labelledby="settings-title">
+  <div class="settings-head">
+    <h2 id="settings-title">Settings</h2>
+    <button type="button" class="icon-btn" id="settings-close" aria-label="Close settings"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+  </div>
+  <div id="settings-body"></div>
+</dialog>
 <script>
 "use strict";
-const DATA_PARAM = new URLSearchParams(location.search).get("data");
+const PAGE_QUERY = new URLSearchParams(location.search);
+const DATA_PARAM = PAGE_QUERY.get("data");
 const DATA_URL = DATA_PARAM || "app-data.json";
+const EMBED = PAGE_QUERY.has("embed");
 // Where the figures come from (the owner's choice, 2026-10-22: "GitHub only"): a private GitHub
 // repository, read with a key that can only see that repository. Each device's key is pasted into
 // the set-up card once and kept on that device only. On an iPad the Home Screen app has its own
@@ -410,6 +617,10 @@ function playbookRepo() {
 const SOURCE_KEY = "private-source";
 const HIDDEN_KEY = "hidden-alerts";
 const CARDS_KEY = "hidden-cards";
+const LOOK_KEY = "look";
+const CARE_KEY = "screen-care";
+const PREVIEW_KEY = "screen-preview";
+const DEMO_KEY = "demo-mode";
 const ZONE = "Europe/London";
 const PERIODS = [["yesterday", "Yesterday"], ["this_month", "This month"], ["last_month", "Last month"], ["last_12_months", "12 months"]];
 const CARDS = [["now", "Right now"], ["energy", "Energy"], ["best", "Best times to use power"], ["start", "When to start the machines"],
@@ -432,7 +643,7 @@ const GAP_UNTIL = "2024-08-25";     // periods starting before this may have mis
 const live = { url: "", reading: store("live-last"), error: "", asked: 0, version: 0 };
 const days = { loaded: {} };                                    // each day's readings, by date
 const extra = { months: {}, years: {} };                        // month and year totals, for the bar charts
-let daily = null, dailyStale = false, wakeLock = null, chart = null, resizer = null;
+let daily = null, dailyStale = false, wakeLock = null, chart = null, resizer = null, DEMO = false;
 (() => {
   const last = store("day-last");
   if (last && last.date && last.points) { days.loaded[last.date] = last; live.version = last.version || 0; }   // saved after cleanDay
@@ -1381,7 +1592,7 @@ function drawEnergy() {
   const step = niceStep(Math.max(up, down, day ? 0.4 : 1));
   let top = Math.max(step, Math.ceil(up / step - 1e-9) * step), bottom = Math.max(step, Math.ceil(down / step - 1e-9) * step);
   const label = v => (Math.round(Math.abs(v) * 100) / 100).toLocaleString("en-GB");
-  const padR = 6, PT = 8, H = W < 520 ? 230 : 270;
+  const padR = 6, PT = 8, H = W < 520 ? 220 : W < 900 ? 280 : 340;
   let padL, plotW, slot, x, k;
   for (let tries = 0; ; tries++) {
     let longest = 1;                                          // room for the longest number on the scale
@@ -1785,10 +1996,459 @@ document.addEventListener("click", e => {
   refreshCards("shower");
 });
 
+// ---- wall tablet: the glance board, sample figures, a preview frame, and dim night.
+// Sizes are the layout size the page uses (an iPad's points), not its full pixel count.
+const PREVIEW_PRESETS = [
+  { id: "tab-a-101-chrome-land", label: "Galaxy Tab A 10.1 (2016), Louis's tablet · landscape, in Chrome · 1280 × 752", w: 1280, h: 752, group: "Louis's tablet" },
+  { id: "tab-a-101-chrome-port", label: "Galaxy Tab A 10.1 (2016), Louis's tablet · portrait, in Chrome · 800 × 1232", w: 800, h: 1232, group: "Louis's tablet" },
+  { id: "tab-a-101-full-land", label: "Galaxy Tab A 10.1 (2016), Louis's tablet · landscape, fullscreen · 1280 × 800", w: 1280, h: 800, group: "Louis's tablet" },
+  { id: "tab-a-101-full-port", label: "Galaxy Tab A 10.1 (2016), Louis's tablet · portrait, fullscreen · 800 × 1280", w: 800, h: 1280, group: "Louis's tablet" },
+  { id: "actual", label: "Actual device", group: "This screen" },
+  { id: "ipad-102-land", label: "iPad 10.2 landscape · 1080 × 810", w: 1080, h: 810, group: "iPad" },
+  { id: "ipad-102-port", label: "iPad 10.2 portrait · 810 × 1080", w: 810, h: 1080, group: "iPad" },
+  { id: "ipad-109-land", label: "iPad 10.9 landscape · 1180 × 820", w: 1180, h: 820, group: "iPad" },
+  { id: "ipad-109-port", label: "iPad 10.9 portrait · 820 × 1180", w: 820, h: 1180, group: "iPad" },
+  { id: "ipad-air-11-land", label: "iPad Air 11 landscape · 1180 × 820", w: 1180, h: 820, group: "iPad" },
+  { id: "ipad-air-11-port", label: "iPad Air 11 portrait · 820 × 1180", w: 820, h: 1180, group: "iPad" },
+  { id: "ipad-air-13-land", label: "iPad Air 13 landscape · 1366 × 1024", w: 1366, h: 1024, group: "iPad" },
+  { id: "ipad-air-13-port", label: "iPad Air 13 portrait · 1024 × 1366", w: 1024, h: 1366, group: "iPad" },
+  { id: "ipad-pro-129-land", label: "iPad Pro 12.9 landscape · 1366 × 1024", w: 1366, h: 1024, group: "iPad" },
+  { id: "ipad-pro-129-port", label: "iPad Pro 12.9 portrait · 1024 × 1366", w: 1024, h: 1366, group: "iPad" },
+  { id: "tab-s-11-land", label: "Galaxy Tab S 11 landscape · 1280 × 800", w: 1280, h: 800, group: "Android tablets" },
+  { id: "tab-s-11-port", label: "Galaxy Tab S 11 portrait · 800 × 1280", w: 800, h: 1280, group: "Android tablets" },
+  { id: "tab-s-124-land", label: "Galaxy Tab S 12.4 landscape · 1400 × 876", w: 1400, h: 876, group: "Android tablets" },
+  { id: "tab-s-124-port", label: "Galaxy Tab S 12.4 portrait · 876 × 1400", w: 876, h: 1400, group: "Android tablets" },
+  { id: "lenovo-11-land", label: "Lenovo Tab 11 landscape · 1280 × 800", w: 1280, h: 800, group: "Android tablets" },
+  { id: "lenovo-11-port", label: "Lenovo Tab 11 portrait · 800 × 1280", w: 800, h: 1280, group: "Android tablets" },
+  { id: "fire-hd-10-land", label: "Fire HD 10 landscape · 1280 × 800", w: 1280, h: 800, group: "Android tablets" },
+  { id: "fire-hd-10-port", label: "Fire HD 10 portrait · 800 × 1280", w: 800, h: 1280, group: "Android tablets" },
+  { id: "phone-port", label: "Phone portrait · 390 × 844", w: 390, h: 844, group: "Phone" },
+  { id: "phone-land", label: "Phone landscape · 844 × 390", w: 844, h: 390, group: "Phone" },
+  { id: "custom", label: "Custom width × height", group: "Other" },
+];
+const SAMPLE_WINDOWS = [[180, 360], [720, 900], [1170, 1350]];
+const DRIFT = [[0, 0], [7, 2], [3, 8], [-4, 5], [-8, 1], [-5, -4], [1, -7], [6, -3]];
+
+function demoRequested() {
+  const flag = new URLSearchParams(location.search).get("demo");
+  return flag === "1" || flag === "true" || store(DEMO_KEY) === true;
+}
+function lookChoice() {
+  const saved = store(LOOK_KEY);
+  if (saved === "day" || saved === "night" || saved === "evening" || saved === "auto") return saved;
+  const q = PAGE_QUERY.get("look");
+  if (q === "day" || q === "night" || q === "evening" || q === "auto") return q;
+  return "auto";
+}
+function screenCareOn() {
+  const saved = store(CARE_KEY);
+  if (saved === true || saved === false) return saved;
+  return !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+function applyChrome() {
+  const choice = lookChoice();
+  const hour = +clock(new Date()).slice(0, 2);
+  const night = choice === "night" || (choice === "evening" && (hour >= 22 || hour < 7));
+  const root = document.documentElement;
+  root.classList.toggle("dim", night);
+  if (choice === "day" || (choice === "evening" && !night)) root.setAttribute("data-theme", "light");
+  else if (night) root.setAttribute("data-theme", "dark");
+  else root.removeAttribute("data-theme");
+}
+function applyDrift() {
+  const board = document.getElementById("board");
+  const root = document.documentElement;
+  if (!board) return;
+  if (!screenCareOn()) { board.style.transform = ""; root.classList.remove("care"); return; }
+  root.classList.add("care");
+  const spot = DRIFT[Math.floor(Date.now() / (3 * 60 * 1000)) % DRIFT.length];
+  board.style.transform = `translate(${spot[0]}px, ${spot[1]}px)`;
+}
+function savedPreview() {
+  const saved = store(PREVIEW_KEY);
+  if (!saved || saved.id === "actual" || !(saved.w > 0) || !(saved.h > 0)) return null;
+  const known = PREVIEW_PRESETS.find(p => p.id === saved.id);
+  const sized = `${saved.w} × ${saved.h}`;
+  const label = saved.id === "custom" ? (saved.label || `Custom · ${sized}`) : ((known && known.label) || saved.label || sized);
+  return { id: saved.id, w: +saved.w, h: +saved.h, label };
+}
+function writePreview(preset) {
+  if (!preset || preset.id === "actual") store(PREVIEW_KEY, { id: "actual" });
+  else store(PREVIEW_KEY, { id: preset.id, w: +preset.w, h: +preset.h, label: preset.label || `${preset.w} × ${preset.h}` });
+  if (EMBED) return;                                   // the frame around this page hears the saved choice
+  if (!preset || preset.id === "actual") {
+    if (document.documentElement.classList.contains("preview-shell")) location.reload();
+    return;
+  }
+  location.reload();
+}
+function previewOptions(selectedId) {
+  const groups = [];
+  for (const preset of PREVIEW_PRESETS) {
+    let group = groups.find(g => g.name === preset.group);
+    if (!group) groups.push(group = { name: preset.group, items: [] });
+    group.items.push(preset);
+  }
+  return groups.map(g => `<optgroup label="${esc(g.name)}">${g.items.map(p =>
+    `<option value="${esc(p.id)}"${p.id === selectedId ? " selected" : ""}>${esc(p.label)}</option>`).join("")}</optgroup>`).join("");
+}
+function setDemo(on) {
+  store(DEMO_KEY, !!on);
+  const url = new URL(location.href);
+  if (on) url.searchParams.set("demo", "1"); else url.searchParams.delete("demo");
+  location.href = url.pathname + url.search;
+}
+
+function londonMidnightMs(dateStr) {
+  let utc = Date.parse(dateStr + "T00:00:00Z");
+  for (let i = 0; i < 4; i++) utc = Date.parse(dateStr + "T00:00:00Z") - ukOffset(utc / 1000) * 1000;
+  return utc;
+}
+function foxStamp(date) {
+  const p = Object.fromEntries(PARTS_FMT.formatToParts(date).map(x => [x.type, x.value]));
+  const off = ukOffset(date.getTime() / 1000), sign = off >= 0 ? "+" : "-", mins = Math.abs(off) / 60;
+  return `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}:${p.second} GMT${sign}${String(Math.floor(mins / 60)).padStart(2, "0")}${String(mins % 60).padStart(2, "0")}`;
+}
+function sampleHouse(h) {
+  let k = 0.34;
+  if (h >= 6.5 && h < 8.5) k += 0.75;
+  if (h >= 12 && h < 13.5) k += 0.28;
+  if (h >= 17 && h < 21) k += 1.15;
+  if (h >= 18 && h < 19) k += 0.4;
+  return k;
+}
+function sampleSolar(h) {
+  if (h < 8 || h > 16.2) return 0;
+  return 2.05 * Math.sin(Math.PI * (h - 8) / 8.2);
+}
+function inCheap(minute) { return SAMPLE_WINDOWS.some(([a, b]) => minute >= a && minute < b); }
+function buildDemo() {
+  const now = new Date(), today = londonDate(now), minuteNow = londonNow(now).minute;
+  const start = londonMidnightMs(today) / 1000, pack = 10.4, stepH = 5 / 60;
+  let soc = 24;
+  const cols = { t: [], solar: [], house: [], buying: [], selling: [], charging: [], giving: [], battery: [], roof1: [], roof2: [] };
+  const totals = { solar: 0, house: 0, bought: 0, sold: 0, charged: 0, gave: 0 };
+  let last = null;
+  for (let minute = 0; minute <= minuteNow; minute += 5) {
+    const h = minute / 60, solar = sampleSolar(h), house = sampleHouse(h);
+    let charge = 0, give = 0, buy = 0, sell = 0;
+      if (inCheap(minute) && soc < 97) {
+      charge = Math.min(1.5, (100 - soc) / 100 * pack / stepH);
+      const need = house + charge - solar;
+      if (need >= 0) buy = need; else sell = -need;
+    } else {
+      const gap = house - solar;
+      if (gap >= 0.02) { give = soc > 12 ? Math.min(gap, 4.5) : 0; buy = Math.max(0, gap - give); }
+      else { const spare = Math.max(0, -gap); charge = soc < 99 ? Math.min(spare, 2.4) : 0; sell = Math.max(0, spare - charge); }
+    }
+    soc = Math.max(8, Math.min(100, soc + (charge * 0.95 - give / 0.95) * stepH / pack * 100));
+    const r3 = n => Math.round(n * 1000) / 1000;
+    cols.t.push(minute * 60);
+    cols.solar.push(r3(solar)); cols.house.push(r3(house)); cols.buying.push(r3(buy)); cols.selling.push(r3(sell));
+    cols.charging.push(r3(charge)); cols.giving.push(r3(give)); cols.battery.push(Math.round(soc));
+    cols.roof1.push(r3(solar * 0.58)); cols.roof2.push(r3(solar * 0.42));
+    totals.solar += solar * stepH; totals.house += house * stepH; totals.bought += buy * stepH;
+    totals.sold += sell * stepH; totals.charged += charge * stepH; totals.gave += give * stepH;
+    last = { solar, house, buy, sell, charge, give, soc };
+  }
+  for (const k of Object.keys(totals)) totals[k] = Math.round(totals[k] * 10) / 10;
+  const reading = {
+    ok: true, time: foxStamp(now),
+    solar_kw: last ? +last.solar.toFixed(2) : 0, house_kw: last ? +last.house.toFixed(2) : 0,
+    buying_kw: last ? +last.buy.toFixed(2) : 0, selling_kw: last ? +last.sell.toFixed(2) : 0,
+    battery_charge_kw: last ? +last.charge.toFixed(2) : 0, battery_discharge_kw: last ? +last.give.toFixed(2) : 0,
+    battery_percent: last ? Math.round(last.soc) : 50,
+    roof1_kw: last ? +(last.solar * 0.58).toFixed(2) : 0, roof2_kw: last ? +(last.solar * 0.42).toFixed(2) : 0,
+  };
+  const day = {
+    ok: true, version: 3, date: today, start, end: start + 86400, points: cols, now: reading, fetched: now.toISOString(),
+    totals: { solar: totals.solar, bought: totals.bought, sold: totals.sold, charged: totals.charged, gave: totals.gave, house: totals.house },
+  };
+  const hours = fromHour => {
+    const list = [];
+    for (let h = fromHour; h < 24; h++) {
+      const cheap = inCheap(h * 60 + 30);
+      list.push({ hour: String(h).padStart(2, "0") + ":00", solar_kwh: +sampleSolar(h + 0.5).toFixed(2), use_kwh: +sampleHouse(h + 0.5).toFixed(2),
+                  spare_kwh: 0, pence: cheap ? 15 : 32, rating: cheap ? "best" : "good" });
+    }
+    return list;
+  };
+  const made = foxStamp(now).slice(0, 16);
+  const prices = {
+    import: "Sample two-rate tariff (not yours)", standing_p_day: 48.2,
+    import_bands: [[0, 180, 32], [180, 360, 15], [360, 720, 32], [720, 900, 15], [900, 1170, 32], [1170, 1350, 15], [1350, 0, 32]],
+    import_special: [[[6], 720, 840, 0]], export: "Exports not paid in this sample", export_bands: [[0, 0, 0]],
+  };
+  const need = [];
+  for (let i = 0; i < 48; i++) need.push(Math.round((sampleHouse(i / 2) - sampleSolar(i / 2) * 0.9) * 0.5 * 1000) / 1000);
+  const period = (solar, used, bought, sold, cost, saved, days) => ({
+    days, solar_kwh: solar, used_kwh: used, bought_kwh: bought, sold_kwh: sold,
+    battery_in_kwh: Math.round(bought * 0.35 * 10) / 10, battery_out_kwh: Math.round(used * 0.4 * 10) / 10,
+    cost_gbp: cost, export_gbp: 0, saved_gbp: saved,
+  });
+  const dailyDemo = {
+    version: 1, made, today, demo: true,
+    numbers: {
+      yesterday: period(4.8, 22.4, 19.1, 0.6, 4.15, 2.4, 1),
+      this_month: period(96, 480, 410, 8, 86.4, 34, 23),
+      last_month: period(160, 610, 490, 22, 118, 41, 31),
+      last_12_months: period(3600, 7200, 5400, 800, 1280, 460, 360),
+    },
+    best_times: {
+      made,
+      days: [
+        { date: today, label: "Today", solar_kwh: 5.4, spare_kwh: 0.4, hours: hours(Math.floor(minuteNow / 60)),
+          text: "Best: the cheap windows still to come (about 15p). Outside those, the battery covers the house." },
+        { date: shiftDate(today, 1), label: "Tomorrow", solar_kwh: 6.1, spare_kwh: 0.6, hours: hours(0),
+          text: "Best: 03:00–06:00, 12:00–15:00 and 19:30–22:30, about 15p. A quiet sample day." },
+      ],
+      battery_plan: { text: "Sample: the battery charges in the cheap windows, 03:00–06:00, 12:00–15:00 and 19:30–22:30." },
+    },
+    alerts: [
+      { id: "sample-watch", level: "watch", text: "Sample alert: the battery was getting low before the evening cheap window.",
+        details: "Made up, like every figure on this screen. Your house is not being watched.", since: today },
+      { id: "sample-money", level: "money", text: "Sample alert: a cheaper tariff would save about £200 a year.",
+        details: "Not a real offer. Shown so the alerts area has something in it.", since: today },
+    ],
+    tariff: {
+      import: "Sample two-rate tariff (not yours)", export: "none", contract_end: null, compared: today,
+      whole_market: false, coverage: "Sample only. Not a comparison of real tariffs.", now_gbp_a_year: 1400,
+      options: [
+        { import: "Sample cheaper tariff", export: "Sample export", gbp_a_year: 1180, fixed_months: 12, exit_fee_gbp: 0 },
+        { import: "Sample flexible tariff", export: "Sample export", gbp_a_year: 1260, fixed_months: 0, exit_fee_gbp: 0 },
+      ],
+    },
+    battery: { percent: reading.battery_percent, at: `${today} ${clock(now)}` },
+    shower: { kw: 9, rates: [] }, prices,
+    room: {
+      inverter_kw: 5, usable_kwh: 8.4, floor_percent: 10, charge_windows: SAMPLE_WINDOWS, need_kwh: need, need_days: 21,
+      machines: [
+        { key: "wash", name: "A hot wash", kw: 2.1, kwh: 2.1, minutes: 150 },
+        { key: "dry", name: "A dry", kw: 2.4, kwh: 3, minutes: 105 },
+        { key: "both", name: "A wash and a dry together", kw: 4.5, kwh: 5.1, minutes: 150 },
+      ],
+    },
+    usage: {
+      full_price: {
+        yesterday: { kwh: 4.2, gbp: 1.34, showers_kwh: 1.1, over_5kw_kwh: 0.4, battery_empty_kwh: 2.2, other_kwh: 0.5 },
+        last_7_days: { kwh: 18.6, gbp: 5.9, showers_kwh: 8.4, over_5kw_kwh: 1.2, battery_empty_kwh: 7.1, other_kwh: 1.9 },
+        ran_out_yesterday: ["08:10"], from: shiftDate(today, -7), full_price_p: 32,
+      },
+      always_on: {
+        nights: Array.from({ length: 14 }, (_, i) => [shiftDate(today, -13 + i), Math.round((0.28 + (i % 5) * 0.04) * 100) / 100]),
+        last_night: [today, 0.32], typical_kw: 0.36, typical_home_kw: 0.13, tenth_kw_gbp_a_year: 115, above_typical_home_gbp_a_year: 260,
+      },
+    },
+    appliances: [
+      { name: "Washing machine", yesterday: { kwh: 1.4, gbp: 0.22 }, week: { kwh: 6.8, gbp: 1.15 }, month: { kwh: 18.2, gbp: 3.4 } },
+      { name: "Tumble dryer", yesterday: { kwh: 2.6, gbp: 0.41 }, week: { kwh: 9.4, gbp: 1.7 }, month: { kwh: 24, gbp: 4.6 } },
+      { name: "Dishwasher", yesterday: { kwh: 0.9, gbp: 0.14 }, week: { kwh: 4.1, gbp: 0.7 }, month: { kwh: 12.5, gbp: 2.2 } },
+      { name: "Fridge", yesterday: { kwh: 0.8, gbp: 0.18 }, week: { kwh: 5.6, gbp: 1.3 }, month: { kwh: 22, gbp: 5.1 } },
+      { name: "All plugs", yesterday: { kwh: 5.7, gbp: 0.95 }, week: { kwh: 25.9, gbp: 4.85 }, month: { kwh: 76.7, gbp: 15.3 } },
+      { name: "Everything else", yesterday: { kwh: 16.7, gbp: 3.2 }, week: { kwh: 96, gbp: 18.4 }, month: { kwh: 330, gbp: 71 } },
+    ],
+    notes: ["Sample figures, made up so this screen can be judged with no key. Not this house."],
+    sources: ["Made-up sample"],
+  };
+  return { daily: dailyDemo, reading, day };
+}
+function startDemo() {
+  DEMO = true;
+  const built = buildDemo();
+  daily = built.daily;
+  dailyStale = false;
+  live.url = "demo";
+  live.version = 3;
+  live.reading = built.reading;
+  live.error = "";
+  live.asked = Date.now();
+  days.loaded = {};
+  days.loaded[built.day.date] = built.day;
+  const main = document.getElementById("main");
+  if (main) main.innerHTML = "";
+  render();
+}
+
+function powerHtml(kwValue) {
+  if (kwValue == null || isNaN(kwValue)) return "–";
+  const v = Math.max(0, kwValue);
+  if (v < 0.02) return "0<small>W</small>";
+  if (v < 1) return `${Math.round(v * 1000)}<small>W</small>`;
+  return `${v.toFixed(v >= 10 ? 1 : 2)}<small>kW</small>`;
+}
+function renderHero() {
+  const el = document.getElementById("hero");
+  if (!el) return;
+  if (!daily || document.getElementById("setup")) { el.innerHTML = ""; return; }
+  const r = live.reading, f = r ? flows(r) : null;
+  const pct = f && f.pct != null ? Math.round(Math.max(0, Math.min(100, f.pct)))
+    : (daily.battery && num(daily.battery.percent) != null ? Math.round(daily.battery.percent) : null);
+  const flow = !f ? "Waiting for a reading"
+    : f.charge >= ON_KW ? `Charging at ${kw(f.charge)} kW`
+    : f.give >= ON_KW ? `Giving ${kw(f.give)} kW to the house` : "Battery resting";
+  const p = pct == null ? 0 : pct, radius = 42, circ = 2 * Math.PI * radius, dash = circ * p / 100;
+  const tone = pct == null ? "var(--muted)" : p < 15 ? "var(--critical)" : p < 30 ? "var(--warning)" : "var(--c-battery)";
+  const ring = `<div class="ring-wrap"><svg class="ring" viewBox="0 0 120 120" aria-hidden="true"><circle class="ring-track" cx="60" cy="60" r="${radius}"></circle><circle class="ring-value" cx="60" cy="60" r="${radius}" style="stroke:${tone};stroke-dasharray:${dash.toFixed(2)} ${(circ - dash).toFixed(2)}"></circle></svg><div class="ring-copy"><div class="pct">${pct == null ? "–" : `${pct}<small>%</small>`}</div></div></div>`;
+  const spent = days.loaded[londonDate()] ? dayMoney(days.loaded[londonDate()]) : null;
+  const month = ((daily.numbers || {}).this_month) || {};
+  const metric = (key, label, valueHtml, sub, on) => `<div class="metric${on ? " on" : ""}"><div class="k">${key ? `<i class="sw" style="--c: var(--c-${key})"></i>` : ""}${esc(label)}</div><b>${valueHtml}</b>${sub ? `<div class="s">${esc(sub)}</div>` : ""}</div>`;
+  const windows = (daily.room && daily.room.charge_windows && daily.room.charge_windows.length) ? daily.room.charge_windows : SAMPLE_WINDOWS;
+  const minute = londonNow().minute;
+  const cheapNow = windows.some(([a, b]) => minute >= a && minute < b);
+  const priceNow = tariffNow(daily.prices);
+  const price = priceNow ? (priceNow.p === 0 ? "free" : `${pence(priceNow.p)} a unit`) : "";
+  const rate = cheapNow ? "Cheap rate now" : (priceNow && priceNow.p === 0 ? "Free right now" : "Standard rate");
+  const wins = windows.map(([a, b]) => `<span class="win" style="left:${(a / 1440 * 100).toFixed(2)}%;width:${((b - a) / 1440 * 100).toFixed(2)}%"></span>`).join("");
+  const pills = windows.map(([a, b]) => `<span class="win-pill${minute >= a && minute < b ? " now" : ""}">${minuteClock(a)}–${minuteClock(b)}${minute >= a && minute < b ? " · now" : ""}</span>`).join("");
+  const alerts = (daily.alerts || []).filter(a => !(store(HIDDEN_KEY) || {})[a.id]).slice(0, 2);
+  const alertHtml = alerts.length
+    ? `<div class="glance-alerts">${alerts.map(a => `<p class="glance-alert ${esc(a.level || "")}">${esc(a.text)}</p>`).join("")}</div>`
+    : `<p class="glance-quiet">No alerts</p>`;
+  el.innerHTML = `<section class="glance" aria-label="Battery ${pct == null ? "unknown" : pct + " percent"}. ${esc(flow)}">
+      <div class="glance-top">
+        <div class="glance-battery">${ring}<div class="glance-side"><div class="glance-kicker">${DEMO ? "Sample" : "Right now"}</div><div class="hero-clock" id="hero-clock">${esc(clock(new Date()))}</div><p class="glance-flow">${esc(flow)}</p></div></div>
+        <div class="metrics">
+          ${metric("solar", "Solar", f ? powerHtml(f.solar) : "–", "", !!(f && f.solar >= ON_KW))}
+          ${metric("home", "House", f ? powerHtml(f.house) : "–", "", !!(f && f.house >= ON_KW))}
+          ${metric("grid", "Import", f ? powerHtml(f.buy) : "–", "from the grid", !!(f && f.buy >= ON_KW))}
+          ${metric("grid", "Export", f ? powerHtml(f.sell) : "–", "to the grid", !!(f && f.sell >= ON_KW))}
+          ${metric("", "Today", spent ? gbp(spent.spent) : "–", "cost so far", false)}
+          ${metric("", "This month", gbp(month.cost_gbp), "cost so far", false)}
+        </div>
+      </div>
+      <div class="dayline">
+        <div class="dayline-head"><span class="price-pill${cheapNow || (priceNow && priceNow.p === 0) ? " cheap" : ""}">${esc(rate)}${price ? ` · ${esc(price)}` : ""}</span><span class="fine">Cheap charge slots</span></div>
+        <div class="daybar" role="img" aria-label="The day. Cheap charge slots are marked, and the line is now.">${wins}<span class="now-mark" style="left:${(minute / 1440 * 100).toFixed(2)}%"></span></div>
+        <div class="day-scale" aria-hidden="true"><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div>
+        <div class="win-pills">${pills}</div>
+        ${alertHtml}
+      </div>
+    </section>`;
+}
+
+function openSettings() {
+  const box = document.getElementById("settings-body"), dialog = document.getElementById("settings");
+  if (!box || !dialog) return;
+  const look = lookChoice(), preview = savedPreview(), previewId = preview ? preview.id : "actual", custom = store(PREVIEW_KEY) || {};
+  const hidden = store(CARDS_KEY) || {}, source = store(SOURCE_KEY);
+  const looks = [["auto", "Match this device", "Follows the device's own light or dark setting."],
+    ["day", "Day", "Bright, for a room with the lights on."],
+    ["night", "Dim night", "Very dark, for a screen left on in a dark room. Easier on the panel, and it uses less power."],
+    ["evening", "Dim after 10pm", "Daytime stays bright. From 10pm to 7am it dims on its own."]];
+  box.innerHTML = `<section class="set-block"><h3>How this screen looks</h3><div class="choice">${looks.map(([id, name, help]) =>
+      `<label><input type="radio" name="look" value="${id}"${look === id ? " checked" : ""}><span><b>${name}</b><br><span class="set-help">${help}</span></span></label>`).join("")}</div></section>
+    <section class="set-block"><h3>A screen that stays on</h3>
+      <label class="set-check"><input type="checkbox" id="set-care"${screenCareOn() ? " checked" : ""}><span>Shift the picture a few millimetres every few minutes, so a fixed number doesn't burn into the screen.</span></label>
+      ${"wakeLock" in navigator ? `<label class="set-check"><input type="checkbox" id="set-awake"${store("keep-awake") ? " checked" : ""}><span>Keep the screen on while this is open.</span></label>` : `<p class="set-help">This browser can't keep the screen on by itself. On an iPad, set Auto-Lock to Never.</p>`}
+    </section>
+    <section class="set-block"><h3>Preview a screen size</h3>
+      <p class="set-help">On a computer this starts as Louis's wall tablet: a Galaxy Tab A 10.1 from 2016, landscape, in Chrome (1280 × 752). Fullscreen is that same tablet with the status and navigation bars hidden (1280 × 800). On the tablet itself, leave this on Actual device. Other sizes are the layout size the page uses, about half a newer iPad's full pixel count.</p>
+      <select class="set-select" id="set-preview" aria-label="Preview screen size">${previewOptions(previewId)}</select>
+      <div class="set-nums" id="set-custom"${previewId === "custom" ? "" : " hidden"}>
+        <input class="set-num" id="set-w" type="number" min="240" max="4096" inputmode="numeric" aria-label="Width" value="${esc(custom.w || 1280)}">
+        <span>×</span>
+        <input class="set-num" id="set-h" type="number" min="240" max="4096" inputmode="numeric" aria-label="Height" value="${esc(custom.h || 800)}">
+        <button type="button" class="btn" id="set-custom-go">Use this size</button>
+      </div>
+      <p class="set-help" id="set-preview-note" role="status"></p>
+    </section>
+    <section class="set-block"><h3>Figures</h3>
+      <p class="set-help">${DEMO ? "These are made-up sample figures. A key saved on this device is left as it is." : "Sample figures are made up, clearly labelled, so you can judge the layout before a key is saved."}</p>
+      <div class="actions"><button type="button" class="btn${DEMO ? " quiet" : ""}" id="set-demo">${DEMO ? "Use real figures" : "Show sample figures"}</button></div>
+    </section>
+    <section class="set-block"><h3>Cards on this screen</h3>
+      <div class="checks">${CARDS.map(([id, name]) => `<label><input type="checkbox" data-card="${id}"${hidden[id] ? "" : " checked"}>${esc(name)}</label>`).join("")}</div>
+    </section>
+    ${source ? `<section class="set-block"><h3>This device's key</h3><p class="set-help">Forgetting the key takes you back to set-up. The figures themselves stay where they are.</p><button type="button" class="btn quiet" id="set-forget">Forget this device's key</button></section>` : ""}`;
+  box.querySelectorAll('input[name="look"]').forEach(input => input.onchange = () => { store(LOOK_KEY, input.value); applyChrome(); });
+  const care = box.querySelector("#set-care");
+  if (care) care.onchange = () => { store(CARE_KEY, care.checked); applyDrift(); };
+  const awake = box.querySelector("#set-awake");
+  if (awake) awake.onchange = () => { store("keep-awake", awake.checked); keepAwake(awake.checked); setStatus(); };
+  const customRow = box.querySelector("#set-custom"), note = box.querySelector("#set-preview-note");
+  box.querySelector("#set-preview").onchange = () => {
+    const id = box.querySelector("#set-preview").value;
+    if (id === "custom") { customRow.hidden = false; note.textContent = "Type a width and a height, then use this size."; return; }
+    customRow.hidden = true;
+    const preset = PREVIEW_PRESETS.find(p => p.id === id) || PREVIEW_PRESETS[0];
+    note.textContent = preset.id === "actual" ? "" : `This will show a ${preset.w} × ${preset.h} frame.`;
+    writePreview(preset);
+  };
+  box.querySelector("#set-custom-go").onclick = () => {
+    const w = Math.round(+box.querySelector("#set-w").value), h = Math.round(+box.querySelector("#set-h").value);
+    if (!(w >= 240 && w <= 4096 && h >= 240 && h <= 4096)) { note.textContent = "Use a width and a height between 240 and 4096."; return; }
+    writePreview({ id: "custom", w, h, label: `Custom · ${w} × ${h}` });
+    note.textContent = EMBED ? `Showing ${w} × ${h}.` : "";
+  };
+  box.querySelector("#set-demo").onclick = () => setDemo(!DEMO);
+  const forget = box.querySelector("#set-forget");
+  if (forget) forget.onclick = () => { forgetSource(); location.reload(); };
+  box.querySelectorAll("[data-card]").forEach(input => input.onchange = () => {
+    const chosen = store(CARDS_KEY) || {};
+    if (input.checked) delete chosen[input.dataset.card]; else chosen[input.dataset.card] = Date.now();
+    store(CARDS_KEY, chosen);
+    render();
+  });
+  if (typeof dialog.showModal === "function") { if (!dialog.open) dialog.showModal(); }
+  else dialog.setAttribute("open", "");
+}
+
+function mountPreview(preset) {
+  const root = document.createElement("div");
+  root.id = "preview-root";
+  root.innerHTML = `<div class="preview-bar"><strong id="preview-label"></strong><span class="scale-note" id="preview-scale"></span>
+      <select id="preview-quick" aria-label="Preview screen size">${previewOptions(preset.id)}</select>
+      <span id="preview-custom"${preset.id === "custom" ? "" : " hidden"}><input id="preview-w" type="number" min="240" max="4096" aria-label="Width" value="${preset.w}"><span> × </span><input id="preview-h" type="number" min="240" max="4096" aria-label="Height" value="${preset.h}"><button type="button" class="btn" id="preview-go">Use this size</button></span>
+    </div><div class="preview-stage"><div class="bezel${preset.w < 500 ? " phone" : ""}" id="bezel"><div class="bezel-fit" id="bezel-fit"><iframe id="preview-frame" title="Home energy at the chosen screen size"></iframe></div></div></div>`;
+  document.body.appendChild(root);
+  const frame = root.querySelector("#preview-frame");
+  const url = new URL(location.href);
+  url.searchParams.set("embed", "1");
+  frame.src = url.pathname + url.search;
+  const layout = next => {
+    root.querySelector("#bezel").classList.toggle("phone", next.w < 500);
+    const scale = Math.max(0.2, Math.min((window.innerWidth - 48) / (next.w + 36), (window.innerHeight - 88) / (next.h + 36), 1.75));
+    const fit = root.querySelector("#bezel-fit");
+    fit.style.width = Math.round(next.w * scale) + "px";
+    fit.style.height = Math.round(next.h * scale) + "px";
+    frame.style.width = next.w + "px";
+    frame.style.height = next.h + "px";
+    frame.style.transform = `scale(${scale})`;
+    frame.style.transformOrigin = "top left";
+    root.querySelector("#preview-label").textContent = next.label || `${next.w} × ${next.h}`;
+    const pct = Math.round(scale * 100);
+    root.querySelector("#preview-scale").textContent = pct === 100 ? "Shown at actual size." : pct < 100 ? `Scaled to ${pct}% so it fits this screen.` : `Enlarged to ${pct}% to fill this screen.`;
+  };
+  layout(preset);
+  window.addEventListener("resize", () => { const current = savedPreview(); if (current) layout(current); });
+  root.querySelector("#preview-quick").onchange = () => {
+    const id = root.querySelector("#preview-quick").value;
+    root.querySelector("#preview-custom").hidden = id !== "custom";
+    if (id === "custom") return;
+    writePreview(PREVIEW_PRESETS.find(p => p.id === id) || PREVIEW_PRESETS[0]);
+  };
+  root.querySelector("#preview-go").onclick = () => {
+    const w = Math.round(+root.querySelector("#preview-w").value), h = Math.round(+root.querySelector("#preview-h").value);
+    if (!(w >= 240 && w <= 4096 && h >= 240 && h <= 4096)) return;
+    writePreview({ id: "custom", w, h, label: `Custom · ${w} × ${h}` });
+  };
+  window.addEventListener("storage", event => {
+    if (event.key !== PREVIEW_KEY) return;
+    const next = savedPreview();
+    if (!next) { location.reload(); return; }
+    const quick = root.querySelector("#preview-quick");
+    quick.value = PREVIEW_PRESETS.some(p => p.id === next.id) ? next.id : "custom";
+    root.querySelector("#preview-custom").hidden = next.id !== "custom";
+    layout(next);
+  });
+}
+
+
 // ---- the page
 function setStatus() {
   const el = document.getElementById("status");
-  el.textContent = new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: ZONE });
+  const dateLine = new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: ZONE });
+  el.textContent = DEMO ? `Sample figures · ${dateLine}` : dateLine;
   const button = document.getElementById("keep-awake");
   if ("wakeLock" in navigator && daily) {
     const on = !!store("keep-awake");
@@ -1814,9 +2474,12 @@ function render() {
   const age = daily ? (Date.now() - new Date(daily.made.replace(" ", "T"))) / 3600000 : 0;
   const warn = daily && (dailyStale || age > 30) ? `<div class="banner">${icon("alert")}<span>The daily figures haven't updated since ${esc(when(daily.made))}. The daily update may have stopped, or there's no internet.</span></div>` : "";
   const main = document.getElementById("main");
-  document.getElementById("banner").innerHTML = warn;
+  document.getElementById("banner").innerHTML = DEMO
+    ? `<div class="demo-banner" role="status"><span>Sample figures.</span> Not this house — these numbers are made up, so you can judge the layout. Nothing here is a reading from the inverter.</div>`
+    : warn;
   main.innerHTML = CARDS.filter(([id]) => !hidden[id]).map(([id]) => html[id]()).join("");
   main.classList.toggle("live", !!document.getElementById("card-now") && !!document.getElementById("card-energy"));
+  renderHero();
   setStatus();
   renderFooter();
   wire();
@@ -1826,6 +2489,7 @@ function render() {
 function refreshCards(...ids) {
   // redraw some cards in place; if one appears or goes, redraw the page
   if (document.getElementById("setup") || !daily) return;
+  renderHero();
   const hidden = store(CARDS_KEY) || {}, html = cards();
   for (const id of ids) {
     if (hidden[id]) continue;
@@ -1888,6 +2552,13 @@ async function liveUrl(source) {
 }
 
 async function ask(params) {
+  if (DEMO) {
+    if ((params.want || "day") === "day" && (!params.date || params.date === londonDate())) {
+      const found = days.loaded[londonDate()];
+      if (found) return found;
+    }
+    throw new Error("sample figures only include today");
+  }
   const url = live.url + (live.url.includes("?") ? "&" : "?") + new URLSearchParams(params);
   const response = await fetch(url, { cache: "no-store" });
   const answer = await response.json();
@@ -1896,6 +2567,7 @@ async function ask(params) {
 }
 
 async function refreshLive(force) {
+  if (DEMO) return;
   if (!force && (document.hidden || Date.now() - live.asked < 60 * 1000)) return;
   const source = store(SOURCE_KEY);
   if (NEEDS_KEY && !(source && source.key)) return;          // this device isn't set up yet
@@ -1986,8 +2658,9 @@ async function lastAlert() {
 async function showAlertsStatus(source) {
   const box = document.getElementById("alerts-status");
   if (!box) return;
+  try {
   if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
-    box.textContent = "Alerts: on an iPad or iPhone they work in the app opened from the Home Screen (Share → Add to Home Screen).";
+    box.textContent = "Alerts aren't available in this browser, so none will be sent. The figures still show. On an iPhone or iPad, add the page to the Home Screen first.";
     return;
   }
   // the app's background helper (sw.js) receives the alerts; give it a few seconds to start
@@ -2024,6 +2697,9 @@ async function showAlertsStatus(source) {
       .then(() => { box.textContent = "Alerts: on. New alerts arrive with the morning update."; })
       .catch(e => { box.textContent = "Alerts: " + (e.message || e); });
   };
+  } catch (e) {
+    if (box.isConnected) box.textContent = "Alerts couldn't be set up on this device. The figures still show.";
+  }
 }
 
 // ---- setting up a device: its key is pasted once and kept on that device only
@@ -2043,15 +2719,19 @@ function showSetup(text, keep) {
   document.getElementById("keep-awake").hidden = true;
   document.getElementById("footer").innerHTML = "";
   document.getElementById("banner").innerHTML = "";
+  const hero = document.getElementById("hero");
+  if (hero) hero.innerHTML = "";
   const main = document.getElementById("main");
   main.classList.remove("live");
   if (keep) {
     // the key works but there's nothing to show yet
     main.innerHTML = `<section class="card wide"><div class="card-head"><h2>Set up this device</h2></div><p class="lead">Nearly there</p>
       <p>${esc(text)}</p><div class="actions"><button class="btn" id="setup-retry">Try again</button>
-      <button class="btn quiet" id="setup-change">Change the key</button></div></section>`;
+      <button class="btn quiet" id="setup-change">Change the key</button>
+      <button class="btn quiet" id="setup-demo" type="button">Look at sample figures</button></div></section>`;
     document.getElementById("setup-retry").onclick = () => load();
     document.getElementById("setup-change").onclick = () => { forgetSource(); showSetup(); };
+    document.getElementById("setup-demo").onclick = () => setDemo(true);
     return;
   }
   main.innerHTML = `<section class="card wide" id="setup"><div class="card-head"><h2>Set up this device</h2></div>
@@ -2060,7 +2740,8 @@ function showSetup(text, keep) {
       On an iPad, do this in the app opened from the Home Screen, not in Safari: the two keep separate storage.</p>
     <label class="field">Repository<input id="setup-repo" value="${esc(defaultRepo())}" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false"></label>
     <label class="field">Key<input id="setup-key" type="password" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="github_pat_…"></label>
-    <div class="actions"><button class="btn" id="setup-save">Save on this device</button></div>
+    <div class="actions"><button class="btn" id="setup-save">Save on this device</button>
+      <button class="btn quiet" id="setup-demo" type="button">Look at sample figures</button></div>
     <p class="fine" id="setup-status" role="status">${esc(text || "")}</p></section>`;
   document.getElementById("setup-save").onclick = () => {
     const repo = document.getElementById("setup-repo").value.trim();
@@ -2069,10 +2750,14 @@ function showSetup(text, keep) {
     if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) { status.textContent = "The repository should look like owner/name."; return; }
     if (key.startsWith("ghp_")) { status.textContent = "That's a classic key, which can see every repository. Make a fine-grained one (the walk-through's link)."; return; }
     if (!/^github_pat_\w{20,}$/.test(key)) { status.textContent = "That doesn't look like a GitHub key: they start github_pat_."; return; }
+    store(DEMO_KEY, false);
+    const clean = new URL(location.href);
+    if (clean.searchParams.has("demo")) { clean.searchParams.delete("demo"); history.replaceState(null, "", clean.pathname + clean.search); }
     store(SOURCE_KEY, { repo, key, checked: 0 });
     status.textContent = "Checking the key…";
     load();
   };
+  document.getElementById("setup-demo").onclick = () => setDemo(true);
 }
 
 async function privateSource() {
@@ -2107,6 +2792,8 @@ async function privateSource() {
 }
 
 async function load() {
+  if (demoRequested()) { startDemo(); return; }
+  DEMO = false;
   try {
     const source = await privateSource();
     if (!source && NEEDS_KEY) { showSetup(); return; }
@@ -2128,19 +2815,32 @@ async function load() {
     else document.getElementById("main").innerHTML = `<section class="card wide"><p class="lead">Couldn't load the figures.</p><p class="muted">${esc(error.message || error)}</p></section>`;
   }
 }
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
-load().then(() => refreshLive(true));
-// refresh every half hour and on coming back to the app, but never while a key is being pasted
-function refresh() { if (!document.getElementById("setup-key")) load(); }
-setInterval(refresh, 30 * 60 * 1000);
-setInterval(() => refreshLive(), LIVE_EVERY);
-document.addEventListener("visibilitychange", () => {
-  if (document.hidden) return;
-  refresh();
-  refreshLive();
-  if (store("keep-awake")) keepAwake(true);                  // the screen lock is let go whenever the app is hidden
-});
-if (store("keep-awake")) keepAwake(true);
+function boot() {
+  if (navigator.deviceMemory <= 2) document.documentElement.classList.add("modest");
+  applyChrome();
+  applyDrift();
+  document.getElementById("open-settings").onclick = openSettings;
+  const dialog = document.getElementById("settings");
+  document.getElementById("settings-close").onclick = () => { if (dialog.close) dialog.close(); dialog.removeAttribute("open"); };
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+  load().then(() => refreshLive(true));
+  // refresh every half hour and on coming back to the app, but never while a key is being pasted
+  function refresh() { if (!document.getElementById("setup-key")) load(); }
+  setInterval(refresh, 30 * 60 * 1000);
+  setInterval(() => refreshLive(), LIVE_EVERY);
+  setInterval(() => { applyChrome(); applyDrift(); if (daily && !document.getElementById("setup")) renderHero(); }, 60 * 1000);
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) return;
+    refresh();
+    refreshLive();
+    if (store("keep-awake")) keepAwake(true);                // the screen lock is let go whenever the app is hidden
+  });
+  if (store("keep-awake")) keepAwake(true);
+}
+if (document.documentElement.classList.contains("preview-shell")) {
+  const preset = savedPreview();
+  if (preset) mountPreview(preset); else boot();
+} else boot();
 </script>
 </body>
 </html>
